@@ -46,7 +46,34 @@ Each ticket is a markdown file containing summary, acceptance criteria, technica
 
 ## Install
 
-### OpenCode
+### Skills CLI (recommended)
+
+Repository already uses supported catalog layout: `skills/<skill-name>/SKILL.md`.
+
+Install all workflow skills from this repo:
+
+```bash
+npx skills add <owner>/workflow-agent --skill '*'
+```
+
+Install globally for Zed / Cline / Warp and other agents that support global skills:
+
+```bash
+npx skills add <owner>/workflow-agent --skill '*' -g
+```
+
+Install only for Zed:
+
+```bash
+npx skills add <owner>/workflow-agent --skill '*' -a zed
+```
+
+Notes:
+- `--skill '*'` matters here because repo contains multiple skills.
+- Without it, `skills` CLI may prompt for selection instead of installing whole workflow set.
+- After publishing repo to GitHub, replace `<owner>` with your GitHub account or org.
+
+### Manual install
 
 ```bash
 git clone https://github.com/YOUR_USER/workflow-agent.git
