@@ -40,7 +40,6 @@ Each ticket is a markdown file containing summary, acceptance criteria, technica
 | `wf-implement` | "implement NNN" | Executes the plan, writes code, runs tests |
 | `wf-impl-review` | "review impl NNN" | Reviews code changes against plan + acceptance criteria |
 | `wf-complete` | "done NNN", "complete NNN" | Verifies all AC met, archives ticket |
-| `wf-manager` | "new ticket", "show kanban", "update status" | General ticket CRUD and status operations |
 | `wf-status` | "status", "progress" | Read-only progress overview |
 | `wf-how-to` | "how does workflow work" | Explains the system to new users |
 
@@ -121,7 +120,6 @@ workflow-agent is a filesystem-based ticket lifecycle system. Tickets are markdo
 - User wants to **write code for a ticket** → `wf-implement`
 - User wants to **review implementation** → `wf-impl-review`
 - User wants to **mark work as done** → `wf-complete`
-- User wants to **manage tickets** (create, move, edit) → `wf-manager`
 - User wants to **check progress** → `wf-status`
 - User wants to **understand the system** → `wf-how-to`
 

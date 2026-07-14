@@ -56,7 +56,6 @@ Mark ticket done. Moves to `4.done/`, updates STATUS.md.
 ## Other Useful Commands
 
 - **`wf-status`** — Check progress (kanban view, per-ticket status)
-- **`wf-manager`** — General ticket operations (create, edit, move between statuses)
 
 ## Tips
 
