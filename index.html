@@ -227,9 +227,9 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
       <div class="timeline-step">
         <div class="timeline-dot"></div>
         <div class="timeline-card canopy-panel">
-          <div class="badge">Draft</div>
-          <h4>Discovery Session &amp; SPEC.md</h4>
-          <p>Have a proper discovery session with your agent. Discuss goals, proposed approaches, and non-goals. Save all this crucial context into <code>SPEC.md</code>, your living notepad for the initiative.</p>
+          <div class="badge">Discover</div>
+          <h4>wf-discover</h4>
+          <p>Structured interview to flesh out <code>SPEC.md</code>. Agent asks targeted questions, identifies gaps, and writes a complete specification ready for breakdown.</p>
         </div>
       </div>
 
@@ -285,6 +285,11 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
         <div class="trigger">"new init", "create initiative"</div>
       </div>
       <div class="skill-card">
+        <h3>wf-discover</h3>
+        <p>Structured interview to build a complete SPEC.md before breakdown.</p>
+        <div class="trigger">"discover", "flesh out spec"</div>
+      </div>
+      <div class="skill-card">
         <h3>wf-breakdown</h3>
         <p>Interview-driven breakdown of scope into independently deployable tickets.</p>
         <div class="trigger">"breakdown", "create tickets"</div>
@@ -306,7 +311,7 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
       </div>
       <div class="skill-card">
         <h3>wf-impl-review</h3>
-        <p>Review code changes against plan and acceptance criteria.</p>
+        <p>Run tests and linters, then review code changes against plan and acceptance criteria.</p>
         <div class="trigger">"review impl NNN"</div>
       </div>
       <div class="skill-card">
@@ -317,7 +322,7 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
 
       <div class="skill-card">
         <h3>wf-status</h3>
-        <p>Read-only progress overview across all initiatives.</p>
+        <p>Progress overview across all initiatives. Auto-fixes STATUS.md drift.</p>
         <div class="trigger">"status", "progress"</div>
       </div>
       <div class="skill-card">
@@ -348,7 +353,7 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
   </section>
 
   <footer>
-    <p>MIT License &middot; <a href="https://github.com/YOUR_USER/workflow-agent">GitHub</a></p>
+    <p>MIT License &middot; <a href="https://github.com/zetdotcom/workflow-agent">GitHub</a></p>
   </footer>
 </div>
 

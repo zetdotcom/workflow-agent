@@ -61,7 +61,7 @@ Mark ticket done. Moves to `4.done/`, updates STATUS.md.
 
 - You can skip steps if the work is simple (e.g., go straight from breakdown to implement for trivial tickets)
 - Plan review is optional but recommended for medium/high risk tickets
-- STATUS.md is the source of truth for progress; folder contents are the source of truth for ticket status
+- Folder contents are the source of truth for ticket status — STATUS.md is auto-corrected by `wf-status` if it drifts
 - Each ticket should be independently deployable (1-3 days of work max)
 
 ## Rules
