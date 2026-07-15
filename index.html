@@ -7,97 +7,143 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --accent: #58a6ff;
-  --accent2: #3fb950;
+  --deep-moss: #1A3324;
+  --burnished-copper: #9C5F32;
+  --crisp-sage: #76A880;
+  --warm-cream: #F2EFE9;
+  --pale-sage-cream: #E1EADF;
+  --forest-green: #2C5530;
+  --crisp-text: #EFEFEF;
+  
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
 }
-body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.6; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
+
+body { 
+  background: linear-gradient(180deg, var(--warm-cream) 0%, var(--pale-sage-cream) 100%); 
+  background-attachment: fixed;
+  color: var(--deep-moss); 
+  font-family: var(--font); 
+  line-height: 1.6; 
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--crisp-sage); text-decoration: none; font-weight: 500; transition: all 0.2s; }
+a:hover { color: var(--deep-moss); text-shadow: 0 0 8px rgba(118,168,128,0.4); }
 
 .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
 
 /* Hero */
 .hero { padding: 6rem 0 4rem; text-align: center; }
-.hero h1 { font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-.hero h1 span { color: var(--accent); }
-.hero p { font-size: 1.25rem; color: var(--muted); max-width: 600px; margin: 0 auto 2rem; }
+.hero h1 { font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.hero h1 span { color: var(--crisp-sage); text-shadow: 0 0 15px rgba(118, 168, 128, 0.4); }
+.hero p { font-size: 1.25rem; color: rgba(26, 51, 36, 0.7); max-width: 600px; margin: 0 auto 2rem; }
+
+/* Shared Deep Canopy Style for panels */
+.canopy-panel, .flow-card, .skill-card, .install-block {
+  background: linear-gradient(135deg, var(--deep-moss) 0%, var(--forest-green) 100%);
+  color: var(--crisp-text);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -10px rgba(26, 51, 36, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+}
 
 /* Core Flow Diagram */
 .core-flow { margin: 3rem 0 2rem; }
-.core-flow h3 { text-align: center; font-size: 1rem; color: var(--muted); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.core-flow h3 { text-align: center; font-size: 1rem; color: rgba(26, 51, 36, 0.6); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;}
 .flow-diagram { display: flex; align-items: stretch; justify-content: center; gap: 0; flex-wrap: wrap; }
 .flow-card {
-  background: var(--surface);
-  border: 2px solid #2ea04370;
-  border-radius: 12px;
-  padding: 1.5rem 1.25rem;
+  padding: 1.75rem 1.25rem;
   text-align: center;
   flex: 1;
   min-width: 180px;
   max-width: 220px;
   position: relative;
+  transition: transform 0.3s ease;
 }
-.flow-card:nth-child(1) { border-color: #3fb95080; background: linear-gradient(135deg, #0d1117 0%, #132218 100%); }
-.flow-card:nth-child(3) { border-color: #56d36480; background: linear-gradient(135deg, #0d1117 0%, #15291a 100%); }
-.flow-card:nth-child(5) { border-color: #7ee78780; background: linear-gradient(135deg, #0d1117 0%, #182e1e 100%); }
-.flow-card:nth-child(7) { border-color: #a5f0b080; background: linear-gradient(135deg, #0d1117 0%, #1b3322 100%); }
-.flow-card .step-num { font-size: 0.7rem; color: #3fb950; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-.flow-card h4 { font-family: var(--mono); font-size: 0.9rem; color: #7ee787; margin-bottom: 0.5rem; }
-.flow-card p { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
-.flow-connector { display: flex; align-items: center; padding: 0 0.25rem; font-size: 1.5rem; color: #3fb950; }
+.flow-card:hover { transform: translateY(-5px); }
 
-/* Legacy flow (removed) */
-.flow { display: none; }
+/* Burnished ceramic icon look for step-num */
+.step-num { 
+  display: inline-block;
+  background: var(--warm-cream); 
+  color: var(--deep-moss);
+  font-size: 0.7rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.1em; 
+  margin-bottom: 1rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 -2px 5px rgba(0,0,0,0.05), inset 0 2px 5px rgba(255,255,255,0.9);
+}
+
+.flow-card h4 { font-family: var(--mono); font-size: 0.95rem; color: var(--crisp-sage); margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(118, 168, 128, 0.3); }
+.flow-card p { font-size: 0.85rem; color: rgba(239, 239, 239, 0.75); line-height: 1.6; }
+.flow-connector { display: flex; align-items: center; padding: 0 0.5rem; font-size: 1.5rem; color: var(--crisp-sage); text-shadow: 0 0 12px rgba(118, 168, 128, 0.6); }
 
 /* Section */
 section { padding: 3rem 0; }
-section h2 { font-size: 1.6rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+section h2 { font-size: 1.6rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(26, 51, 36, 0.15); padding-bottom: 0.5rem; color: var(--deep-moss); font-weight: 600; }
+section > p { color: rgba(26, 51, 36, 0.8); font-size: 1.05rem; margin-bottom: 1.5rem; }
 
 /* Skills grid */
-.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
 .skill-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
+  padding: 1.5rem;
+  transition: transform 0.3s ease;
 }
-.skill-card h3 { font-family: var(--mono); font-size: 0.9rem; color: var(--accent); margin-bottom: 0.4rem; }
-.skill-card p { font-size: 0.85rem; color: var(--muted); }
-.skill-card .trigger { font-size: 0.75rem; color: var(--accent2); margin-top: 0.5rem; font-family: var(--mono); }
+.skill-card:hover { transform: translateY(-3px); }
+.skill-card h3 { font-family: var(--mono); font-size: 0.95rem; color: var(--crisp-sage); margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(118, 168, 128, 0.3); }
+.skill-card p { font-size: 0.85rem; color: rgba(239, 239, 239, 0.75); margin-bottom: 1rem; line-height: 1.5;}
+.skill-card .trigger { 
+  font-size: 0.75rem; 
+  color: var(--warm-cream); 
+  background: var(--burnished-copper); 
+  font-family: var(--mono);
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  display: inline-block;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
+}
 
 /* Install */
 .install-block {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 1.5rem;
   font-family: var(--mono);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   overflow-x: auto;
   white-space: pre;
   line-height: 1.8;
+  margin-bottom: 0.5rem;
+}
+.install-note {
+  color: rgba(26, 51, 36, 0.6);
+  font-size: 0.85rem;
+}
+.install-note code {
+  font-family: var(--mono);
+  background: rgba(26, 51, 36, 0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
 }
 
 /* Compat */
-.compat { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.compat { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
 .compat-badge {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--warm-cream);
+  border: 1px solid rgba(26, 51, 36, 0.1);
   border-radius: 20px;
   padding: 0.4rem 1rem;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--deep-moss);
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03), inset 0 2px 5px rgba(255,255,255,0.9);
 }
 
 /* Footer */
-footer { padding: 3rem 0; text-align: center; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); }
+footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font-size: 0.85rem; border-top: 1px solid rgba(26, 51, 36, 0.15); margin-top: 2rem;}
 </style>
 </head>
 <body>
@@ -197,7 +243,7 @@ footer { padding: 3rem 0; text-align: center; color: var(--muted); font-size: 0.
   <section>
     <h2>Install</h2>
     <div class="install-block">npx skills add zetdotcom/workflow-agent</div>
-    <p style="margin-top: 1rem; color: var(--muted); font-size: 0.85rem;">Installs skills interactively. Use <code>-y -g</code> flags to install all globally without prompts.</p>
+    <p class="install-note">Installs skills interactively. Use <code>-y -g</code> flags to install all globally without prompts.</p>
   </section>
 
   <section>
