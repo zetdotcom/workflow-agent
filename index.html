@@ -83,6 +83,34 @@ a:hover { color: var(--deep-moss); text-shadow: 0 0 8px rgba(118,168,128,0.4); }
 .flow-card p { font-size: 0.85rem; color: rgba(239, 239, 239, 0.75); line-height: 1.6; }
 .flow-connector { display: flex; align-items: center; padding: 0 0.5rem; font-size: 1.5rem; color: var(--crisp-sage); text-shadow: 0 0 12px rgba(118, 168, 128, 0.6); }
 
+/* Full Flow Timeline */
+.full-flow { margin: 2rem 0 4rem; }
+.timeline { position: relative; padding-left: 2rem; margin-top: 2rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 0.65rem; top: 0; bottom: 0; width: 2px;
+  background: linear-gradient(180deg, var(--crisp-sage) 0%, rgba(118, 168, 128, 0.1) 100%);
+}
+.timeline-step { position: relative; margin-bottom: 2.5rem; padding-left: 1.5rem; }
+.timeline-step:last-child { margin-bottom: 0; }
+.timeline-dot {
+  position: absolute; left: -1.75rem; top: 0.25rem;
+  width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: var(--warm-cream); border: 3px solid var(--crisp-sage);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 -2px 5px rgba(0,0,0,0.05), inset 0 2px 5px rgba(255,255,255,0.9);
+  z-index: 2;
+}
+.timeline-card {
+  padding: 1.5rem;
+}
+.timeline-card h4 { font-family: var(--mono); font-size: 1.1rem; color: var(--crisp-sage); margin-bottom: 0.5rem; }
+.timeline-card .badge {
+  display: inline-block; font-size: 0.75rem; color: var(--warm-cream); background: var(--burnished-copper);
+  font-family: var(--mono); padding: 0.2rem 0.5rem; border-radius: 4px; margin-bottom: 0.75rem;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
+}
+.timeline-card p { font-size: 0.95rem; color: rgba(239, 239, 239, 0.85); line-height: 1.6; }
+.timeline-card code { font-family: var(--mono); color: var(--crisp-sage); background: rgba(0,0,0,0.2); padding: 0.1rem 0.3rem; border-radius: 4px; }
+
 /* Section */
 section { padding: 3rem 0; }
 section h2 { font-size: 1.6rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(26, 51, 36, 0.15); padding-bottom: 0.5rem; color: var(--deep-moss); font-weight: 600; }
@@ -182,6 +210,66 @@ footer { padding: 3rem 0; text-align: center; color: rgba(26, 51, 36, 0.5); font
       </div>
     </div>
   </header>
+
+  <section class="full-flow">
+    <h2>The Full Lifecycle</h2>
+    <p>From initial concept to completed features, workflow-agent manages the entire process end-to-end.</p>
+    <div class="timeline">
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Init</div>
+          <h4>wf-new-init</h4>
+          <p>Prepare for a new initiative. This scaffolds the necessary folder structure for your project inputs and context.</p>
+        </div>
+      </div>
+      
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Draft</div>
+          <h4>Discovery Session &amp; SPEC.md</h4>
+          <p>Have a proper discovery session with your agent. Discuss goals, proposed approaches, and non-goals. Save all this crucial context into <code>SPEC.md</code>, your living notepad for the initiative.</p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Plan</div>
+          <h4>wf-breakdown</h4>
+          <p>Based on your <code>SPEC.md</code>, this skill automatically splits the scope and generates a set of manageable, independently deployable tickets.</p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Action</div>
+          <h4>🔁 Execute Core Flow</h4>
+          <p>For each ticket, loop through the Core Flow (above). <code>wf-plan</code>, review the plan, <code>wf-implement</code>, and finally review the implementation.</p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Finish</div>
+          <h4>wf-complete</h4>
+          <p>Once you are happy with a ticket and it meets all acceptance criteria, mark it complete. It automatically moves to the 'done' folder.</p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card canopy-panel">
+          <div class="badge">Track</div>
+          <h4>wf-status</h4>
+          <p>Use this anytime to get a quick update on progress, check what is currently in flight, and see exactly what needs to be done next.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section>
     <h2>Why</h2>
