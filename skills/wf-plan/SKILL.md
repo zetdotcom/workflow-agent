@@ -50,8 +50,8 @@ Format:
 
 ### Step 4: Update Status
 
-- Update ticket status from `draft`/`todo` to `in_progress` (planning counts as starting work)
-- Move ticket file to `3.in-progress/` if not already there
+- Move ticket file to `2.todo/` if currently in `1.draft/` (planning makes it ready for work, but it's not in-progress yet)
+- Do NOT move to `3.in-progress/` — that happens when `wf-implement` starts
 - Update STATUS.md accordingly
 
 ## Rules

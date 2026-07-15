@@ -34,6 +34,7 @@ Each ticket is a markdown file containing summary, acceptance criteria, technica
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
 | `wf-new-init` | "new init", "create initiative" | Bootstraps initiative folder structure |
+| `wf-discover` | "discover", "flesh out spec" | Interviews you to build a complete SPEC.md before breakdown |
 | `wf-breakdown` | "breakdown", "create tickets" | Interviews you, splits scope into deployable tickets |
 | `wf-plan` | "plan NNN" | Explores codebase, writes implementation plan into ticket |
 | `wf-plan-review` | "review plan NNN" | Checks plan for completeness, risks, feasibility |
@@ -114,6 +115,7 @@ workflow-agent is a filesystem-based ticket lifecycle system. Tickets are markdo
 ### When to Invoke Each Skill
 
 - User wants to **start a new project/epic** → `wf-new-init`
+- User wants to **flesh out a spec before breakdown** → `wf-discover`
 - User wants to **break work into tickets** → `wf-breakdown`
 - User wants to **plan a specific ticket** → `wf-plan`
 - User wants to **review a plan before coding** → `wf-plan-review`

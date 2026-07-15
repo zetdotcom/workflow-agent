@@ -30,7 +30,7 @@ auth-migration    ██████████  5/5 done   ✓ complete
 
 #### Single init (init name given):
 
-Read and display STATUS.md content. Additionally, verify STATUS.md accuracy by listing files in each status folder (`1.draft/`, `2.todo/`, `3.in-progress/`, `4.done/`). If discrepancies found, note them. Add summary line:
+Read and display STATUS.md content. Additionally, verify STATUS.md accuracy by listing files in each status folder (`1.draft/`, `2.todo/`, `3.in-progress/`, `4.done/`). If discrepancies found, **auto-fix STATUS.md** to match the actual folder contents (folders are source of truth). Inform user what was corrected. Add summary line:
 
 ```
 deposit-refactor — 3/10 done

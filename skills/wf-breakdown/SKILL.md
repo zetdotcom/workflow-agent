@@ -77,7 +77,7 @@ Once confirmed:
 1. Determine init name (ask if not clear, use slug format like `deposit-refactor`)
 2. Create `.workflow/inits/<init-name>/` directory
 3. Create status folders: `1.draft/`, `2.todo/`, `3.in-progress/`, `4.done/`
-4. For each ticket, create `.workflow/inits/<init-name>/1.draft/NNN-slug.md` using template from `.workflow/templates/ticket.md`
+4. For each ticket, create `.workflow/inits/<init-name>/1.draft/NNN-slug.md` using the ticket template from `references/ticket-template.md` bundled with this skill (fall back to `.workflow/templates/ticket.md` if it exists)
 5. Fill in both Summary (Jira-ready) and Technical Deep-Dive sections
 6. Leave Implementation Plan empty (that's for the `plan` skill)
 7. Create/update `.workflow/inits/<init-name>/STATUS.md`

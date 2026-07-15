@@ -32,20 +32,20 @@ Present this as a numbered flow:
 ### 1. Create Init (`wf-new-init`)
 Start a new initiative. Creates the folder structure with SPEC.md and STATUS.md.
 
-### 2. Write the Spec
-Fill in SPEC.md with all raw context: requirements, stakeholder requests, technical debt notes, constraints, risks, links. The more detail here, the better the breakdown.
+### 2. Discover (`wf-discover`)
+Flesh out SPEC.md through a structured interview. Agent asks targeted questions, identifies gaps, and writes a complete, well-structured spec. Ensures nothing critical is missed before breakdown.
 
 ### 3. Breakdown (`wf-breakdown`)
 Turn the spec into actionable tickets. Interactive process — proposes tickets, you confirm/adjust. Tickets land in `1.draft/`.
 
 ### 4. Plan (`wf-plan`)
-Pick a ticket and create a detailed implementation plan. Explores the codebase to validate assumptions and writes concrete steps. Moves ticket to `3.in-progress/`.
+Pick a ticket and create a detailed implementation plan. Explores the codebase to validate assumptions and writes concrete steps. Ticket moves to `2.todo/` (ready for work).
 
 ### 5. Review Plan (`wf-plan-review`)
 Review the plan before coding. Checks completeness, feasibility, risks. Last checkpoint before implementation.
 
 ### 6. Implement (`wf-implement`)
-Execute the plan. Writes actual code changes following the plan steps.
+Execute the plan. Writes actual code changes following the plan steps. Moves ticket to `3.in-progress/`.
 
 ### 7. Review Implementation (`wf-impl-review`)
 Review code changes against the plan and acceptance criteria. Approves or requests changes.

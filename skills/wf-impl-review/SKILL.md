@@ -15,7 +15,16 @@ Reviews the code changes made during implementation against the ticket's plan an
 - Note: acceptance criteria, implementation plan, implementation notes
 - Identify what files were changed (from implementation notes or git diff)
 
-### Step 2: Review Code Changes
+### Step 2: Run Verification
+
+Before reviewing code, run available automated checks:
+- Run relevant tests (unit, integration) — if test commands are known or discoverable
+- Run linter / type checker if configured in the project
+- Note any failures — these are findings for the review
+
+If no automated checks are available or discoverable, note this in the review.
+
+### Step 3: Review Code Changes
 
 For each changed file, review against:
 
@@ -28,7 +37,7 @@ For each changed file, review against:
 7. **Tests** - Are there adequate tests? Do they pass?
 8. **Safety** - Any risk of breaking existing functionality?
 
-### Step 3: Write Review
+### Step 4: Write Review
 
 Add to the ticket's `## Review Notes` section:
 
@@ -53,7 +62,7 @@ Add to the ticket's `## Review Notes` section:
 - ...
 ```
 
-### Step 4: If Changes Needed
+### Step 5: If Changes Needed
 
 - If `needs-changes`: list specific fixes needed, user runs `implement` again or fixes manually
 - If `rejected`: explain why, likely needs re-planning
