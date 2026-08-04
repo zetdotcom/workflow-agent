@@ -2,7 +2,7 @@
 
 > Filesystem-based ticket lifecycle skill for AI coding agents. One `wf` skill manages work from idea to completed implementation — context, tickets, phased plans, reviews, and progress persist as markdown files in the repository, so work resumes across sessions. No external tools, servers, or databases.
 
-Site: https://zetdotcom.github.io/workflow-agent
+Site: https://michalzet.com/workflow-agent
 Repository: https://github.com/zetdotcom/workflow-agent
 Author: zetdotcom (https://github.com/zetdotcom)
 License: MIT

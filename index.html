@@ -5,7 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>workflow-agent — Ticket Lifecycle for AI Coding Agents</title>
 <meta name="description" content="workflow-agent is a filesystem-based ticket lifecycle skill for AI coding agents. Context, tickets, plans, reviews, and progress persist in your repo across sessions.">
+<link rel="canonical" href="https://michalzet.com/workflow-agent/">
 <link rel="alternate" type="text/plain" href="llms.txt" title="LLM-friendly summary">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="workflow-agent">
+<meta property="og:url" content="https://michalzet.com/workflow-agent/">
+<meta property="og:title" content="workflow-agent — Ticket Lifecycle for AI Coding Agents">
+<meta property="og:description" content="One `wf` skill that manages the full ticket lifecycle — context, tickets, phased plans, reviews, and progress — stored as plain markdown in your repo so work survives across sessions.">
+<meta property="og:image" content="https://michalzet.com/workflow-agent/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="workflow-agent — ticket lifecycle for AI coding agents">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="workflow-agent — Ticket Lifecycle for AI Coding Agents">
+<meta name="twitter:description" content="Give your AI coding agent a memory for real project work. Filesystem-based ticket lifecycle, no external tools.">
+<meta name="twitter:image" content="https://michalzet.com/workflow-agent/og.png">
+
+<meta name="theme-color" content="#1A3324">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A3324'/%3E%3Cpath d='M6 11h4l2 8 2-8h4l2 8 2-8h4l-4 14h-4l-2-7-2 7h-4z' fill='%2376A880'/%3E%3C/svg%3E">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "workflow-agent",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "https://michalzet.com/workflow-agent/",
+  "codeRepository": "https://github.com/zetdotcom/workflow-agent",
+  "description": "Filesystem-based ticket lifecycle skill for AI coding agents. Context, tickets, phased plans, reviews, and progress persist as markdown in the repository so work resumes across sessions.",
+  "license": "https://opensource.org/licenses/MIT",
+  "author": { "@type": "Person", "name": "zetdotcom", "url": "https://github.com/zetdotcom" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -34,6 +69,21 @@ body {
 
 a { color: var(--forest-green); text-decoration: none; font-weight: 500; transition: all 0.2s; }
 a:hover { color: var(--deep-moss); text-shadow: 0 0 8px rgba(118,168,128,0.4); }
+
+code { font-family: var(--mono); }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 200;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0 0 12px 0;
+  background: var(--deep-moss);
+  color: var(--crisp-text);
+  font-weight: 600;
+}
+.skip-link:focus { left: 0; color: var(--crisp-text); }
 
 .container { max-width: 940px; margin: 0 auto; padding: 0 2rem; }
 
@@ -104,9 +154,8 @@ nav {
 .hero-visual {
   position: relative;
   max-width: 880px;
-  min-height: 650px;
   margin: 0 auto;
-  padding: 10rem 1rem 2rem;
+  padding: 4rem 1rem 1rem;
   overflow: visible;
   isolation: isolate;
 }
@@ -189,7 +238,7 @@ nav {
   background: var(--crisp-sage);
   box-shadow: 0 0 10px rgba(118,168,128,0.75);
 }
-.status-station:first-child .status-tray::after { background: var(--burnished-copper); box-shadow: none; }
+.status-station:nth-child(1) .ticket-card.front { animation: ticket-breathe 4s ease-in-out infinite; }
 .status-station:nth-child(2) .ticket-card.front { animation: ticket-breathe 4s ease-in-out infinite 0.35s; }
 .status-station:nth-child(3) .ticket-card.front { animation: ticket-breathe 4s ease-in-out infinite 0.7s; }
 .status-station:nth-child(4) .ticket-card.front { animation: ticket-breathe 4s ease-in-out infinite 1.05s; }
@@ -312,6 +361,8 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
   border-radius: 9px;
   background: rgba(118,168,128,0.08);
   color: var(--crisp-text);
+  font-family: var(--mono);
+  font-size: 0.78rem;
 }
 
 /* Code blocks — Deep Canopy required */
@@ -330,6 +381,33 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
 }
 .code-block .c { color: rgba(239,239,239,0.45); }
 .code-block .k { color: var(--crisp-sage); }
+
+/* Copyable code block */
+.copy-wrap { position: relative; }
+.copy-wrap .code-block { padding-right: 5.5rem; }
+.copy-btn {
+  position: absolute;
+  top: 0.7rem; right: 0.7rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  background: rgba(242,239,233,0.1);
+  color: var(--crisp-text);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.copy-btn:hover { background: rgba(242,239,233,0.2); }
+.copy-btn:focus-visible { outline: 2px solid var(--crisp-sage); outline-offset: 2px; }
+.copy-btn[data-copied="true"] { color: var(--crisp-sage); border-color: rgba(118,168,128,0.55); }
+.hint {
+  margin-top: 0.65rem;
+  color: rgba(26, 51, 36, 0.6);
+  font-size: 0.85rem;
+}
+.hint code { font-size: 0.85em; }
 
 /* Quickstart steps */
 .steps { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -523,8 +601,23 @@ details.adv .adv-body code { font-family: var(--mono); background: rgba(26, 51, 
 .file-list li { display: flex; gap: 0.75rem; margin-bottom: 0.6rem !important; align-items: baseline; }
 .file-list code { flex-shrink: 0; min-width: 9.5rem; }
 
-/* Compat */
-.compat { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+/* Comparison table */
+.compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.compare th, .compare td { padding: 0.85rem 1rem; text-align: left; vertical-align: top; }
+.compare thead th { color: var(--crisp-sage); font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.compare tbody tr + tr td { border-top: 1px solid rgba(255,255,255,0.08); }
+.compare td { color: rgba(239,239,239,0.78); }
+.compare td:first-child { color: var(--crisp-text); font-weight: 600; }
+.compare-wrap { padding: 0.6rem 0.6rem; overflow-x: auto; }
+
+/* FAQ */
+.faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+.faq-item { padding: 1.4rem 1.6rem; }
+.faq-item h3 { font-size: 0.98rem; margin-bottom: 0.45rem; color: var(--deep-moss); }
+.faq-item p { font-size: 0.9rem; color: rgba(26, 51, 36, 0.78); line-height: 1.6; }
+.faq-item code { background: rgba(26, 51, 36, 0.07); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+
+/* Compat */.compat { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
 .compat-badge {
   background: var(--warm-cream);
   border: 1px solid rgba(26, 51, 36, 0.1);
@@ -554,7 +647,7 @@ footer a:hover { color: var(--crisp-text); }
 @media (max-width: 640px) {
   .hero h1 { font-size: 2.2rem; }
   .nav-links { gap: 1rem; }
-  .hero-visual { min-height: 760px; padding: 2.5rem 1rem 1.5rem; }
+  .hero-visual { padding: 2.5rem 1rem 1rem; }
   .workflow-stage { grid-template-columns: repeat(2, 1fr); gap: 1.5rem 0.8rem; }
   .status-station:nth-child(odd) .step-tooltip { left: 0; transform: translate(0, 8px); }
   .status-station:nth-child(even) .step-tooltip { left: auto; right: 0; transform: translate(0, 8px); }
@@ -572,6 +665,8 @@ footer a:hover { color: var(--crisp-text); }
   .review-branch { grid-template-columns: 1fr; gap: 0.75rem; margin-top: 1rem; }
   .review-node:first-child, .review-node:last-child { grid-column: 1; }
   .status-rail { align-items: flex-start; flex-wrap: wrap; }
+  .compare { min-width: 620px; }
+  .faq-item { padding: 1.2rem 1.3rem; }
   .footer-inner { flex-direction: column; text-align: center; }
 }
 
@@ -583,6 +678,8 @@ footer a:hover { color: var(--crisp-text); }
 </head>
 <body>
 
+<a class="skip-link" href="#main">Skip to content</a>
+
 <nav>
   <div class="nav-inner">
     <div class="nav-brand"><span>workflow</span>-agent</div>
@@ -590,77 +687,78 @@ footer a:hover { color: var(--crisp-text); }
       <a href="#quickstart">Quickstart</a>
       <a href="#status">Status</a>
       <a href="#lifecycle">Lifecycle</a>
+      <a href="#faq">FAQ</a>
       <a href="#advanced">Advanced</a>
       <a class="gh" href="https://github.com/zetdotcom/workflow-agent">GitHub</a>
     </div>
   </div>
 </nav>
 
-<div class="container">
+<main id="main" class="container">
 
   <header class="hero">
     <h1><span>workflow</span>-agent</h1>
     <p class="tagline">Give your AI coding agent a memory for real project work.</p>
-    <p class="sub">A single <code style="font-family: var(--mono);">wf</code> skill that manages the full ticket lifecycle — context, tickets, phased plans, reviews, and progress — stored as plain files in your repo so work survives across sessions.</p>
+    <p class="sub">A single <code>wf</code> skill that manages the full ticket lifecycle — context, tickets, phased plans, reviews, and progress — stored as plain files in your repo so work survives across sessions.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#quickstart">Get Started</a>
       <a class="btn btn-secondary" href="https://github.com/zetdotcom/workflow-agent">View on GitHub</a>
     </div>
-    <div class="hero-visual" aria-label="Workflow steps from new change through completion">
+    <div class="hero-visual" role="group" aria-label="Workflow steps from new change through completion">
       <div class="workflow-stage">
-        <div class="status-station" tabindex="0">
+        <div class="status-station" tabindex="0" aria-describedby="tip-new">
           <span class="station-label">1 · New</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
             <div class="ticket-card front"><span class="ticket-id">CONTEXT.md</span><span class="ticket-summary">Create a persistent workspace for the change.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf new</strong><p>Create change workspace, context file, status summary, and ticket lifecycle folders.</p></div>
+          <div class="step-tooltip" role="tooltip" id="tip-new"><strong>wf new</strong><p>Create change workspace, context file, status summary, and ticket lifecycle folders.</p></div>
         </div>
-        <div class="status-station" tabindex="0">
+        <div class="status-station" tabindex="0" aria-describedby="tip-discover">
           <span class="station-label">2 · Discover</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
             <div class="ticket-card front"><span class="ticket-id">INTERVIEW</span><span class="ticket-summary">Turn raw ideas into clear project context.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf discover</strong><p>Turn raw notes into structured goals, scope, constraints, risks, and rollout context.</p></div>
+          <div class="step-tooltip" role="tooltip" id="tip-discover"><strong>wf discover</strong><p>Turn raw notes into structured goals, scope, constraints, risks, and rollout context.</p></div>
         </div>
-        <div class="status-station" tabindex="0">
-          <span class="station-label">3 · Plan</span>
+        <div class="status-station" tabindex="0" aria-describedby="tip-breakdown">
+          <span class="station-label">3 · Breakdown</span>
+          <div class="ticket-stack">
+            <div class="ticket-card back" aria-hidden="true"></div>
+            <div class="ticket-card front"><span class="ticket-id">TICKET.md</span><span class="ticket-summary">Split work into deployable tickets you confirm.</span></div>
+          </div>
+          <div class="status-tray" aria-hidden="true"></div>
+          <div class="step-tooltip" role="tooltip" id="tip-breakdown"><strong>wf breakdown</strong><p>Propose independently deployable tickets with goals, risk, and dependencies. Nothing is created until you confirm.</p></div>
+        </div>
+        <div class="status-station" tabindex="0" aria-describedby="tip-plan">
+          <span class="station-label">4 · Plan</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
             <div class="ticket-card front"><span class="ticket-id">PLAN.md</span><span class="ticket-summary">Ground phased implementation in actual code.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf plan</strong><p>Explore actual code and create detailed, independently verifiable implementation phases.</p><span class="tooltip-optional">Optional: wf plan-review</span></div>
+          <div class="step-tooltip" role="tooltip" id="tip-plan"><strong>wf plan</strong><p>Explore actual code and create detailed, independently verifiable implementation phases.</p><span class="tooltip-optional">Optional gate: wf plan-review</span></div>
         </div>
-        <div class="status-station" tabindex="0">
-          <span class="station-label">4 · Implement</span>
+        <div class="status-station" tabindex="0" aria-describedby="tip-implement">
+          <span class="station-label">5 · Implement</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
             <div class="ticket-card front"><span class="ticket-id">PHASE 2/3</span><span class="ticket-summary">Execute and verify one focused phase at a time.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf implement</strong><p>Execute one phase at a time, verify results, and record progress and deviations.</p><span class="tooltip-optional">Optional: wf impl-review</span></div>
+          <div class="step-tooltip" role="tooltip" id="tip-implement"><strong>wf implement</strong><p>Execute one phase at a time, verify results, and record progress and deviations.</p><span class="tooltip-optional">Optional gate: wf impl-review</span></div>
         </div>
-        <div class="status-station" tabindex="0">
-          <span class="station-label">5 · Review</span>
-          <div class="ticket-stack">
-            <div class="ticket-card back" aria-hidden="true"></div>
-            <div class="ticket-card front"><span class="ticket-id">APPROVED</span><span class="ticket-summary">Check code against plans and acceptance criteria.</span></div>
-          </div>
-          <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf impl-review</strong><p>Check changed code, tests, plan adherence, and every acceptance criterion before completion.</p></div>
-        </div>
-        <div class="status-station" tabindex="0">
+        <div class="status-station" tabindex="0" aria-describedby="tip-complete">
           <span class="station-label">6 · Complete</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
             <div class="ticket-card front"><span class="ticket-id">VERIFIED</span><span class="ticket-summary">Archive verified work and select what comes next.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip"><strong>wf complete</strong><p>Verify readiness, archive ticket in done, update progress, and recommend next action.</p></div>
+          <div class="step-tooltip" role="tooltip" id="tip-complete"><strong>wf complete</strong><p>Verify readiness, archive ticket in done, update progress, and recommend next action.</p></div>
         </div>
       </div>
     </div>
@@ -688,6 +786,54 @@ footer a:hover { color: var(--crisp-text); }
     </div>
   </section>
 
+  <section id="compare">
+    <h2>Why Not Just Ask the Agent for a PLAN.md?</h2>
+    <p class="lead">You can — once. The problem is everything after that: the second session, the fifth ticket, the phase you left half-finished on Friday.</p>
+    <div class="compare-wrap canopy">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col">Situation</th>
+            <th scope="col">Ad-hoc prompting</th>
+            <th scope="col">workflow-agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>New session</td>
+            <td>You re-explain the goal, constraints, and what's already done.</td>
+            <td><code>wf status PYE-1123</code> reconstructs it from files in seconds.</td>
+          </tr>
+          <tr>
+            <td>Context window fills up</td>
+            <td>Compaction silently drops decisions; the agent re-litigates them.</td>
+            <td>Decisions live in <code>CONTEXT.md</code> and <code>PLAN.md</code>, re-read on demand.</td>
+          </tr>
+          <tr>
+            <td>Multi-ticket work</td>
+            <td>One giant plan that drifts from reality after ticket two.</td>
+            <td>Ticket directories move <code>draft → todo → in-progress → done</code>.</td>
+          </tr>
+          <tr>
+            <td>Half-finished work</td>
+            <td>"Where did we stop?" is a guess.</td>
+            <td><code>wf implement PYE-1123 001 phase 3</code> resumes exactly there.</td>
+          </tr>
+          <tr>
+            <td>Status truth</td>
+            <td>A status field in a doc that nobody updates.</td>
+            <td>Folder location <em>is</em> the status; summaries auto-repair on drift.</td>
+          </tr>
+          <tr>
+            <td>Setup cost</td>
+            <td>None, but repeated every session.</td>
+            <td>One <code>npx</code> install. No server, database, or hosted service.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="status">
     <h2>Resume Without Reconstructing Everything</h2>
     <p class="lead">Return after an hour, a week, or a fresh agent session. One command tells you where work stopped and what to do next.</p>
@@ -703,7 +849,7 @@ footer a:hover { color: var(--crisp-text); }
           <div class="status-benefit">Ends with the exact recommended <code>wf</code> command to run next.</div>
         </div>
       </div>
-      <div class="status-terminal canopy" aria-label="Example output from wf status">
+      <div class="status-terminal canopy" role="group" aria-label="Example output from wf status">
         <div class="terminal-top" aria-hidden="true">
           <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
           <span class="terminal-command">wf status PYE-1123</span>
@@ -720,21 +866,27 @@ Todo
 
 Done
   <span class="good">✓ 001  Extract auth service
-  ✓ 002  Add token validation</span><span class="next">Next: run `wf implement PYE-1123 003 phase 3`</span></pre>
+  ✓ 002  Add token validation</span></pre>
+        <p class="next">Next: run <code>wf implement PYE-1123 003 phase 3</code></p>
       </div>
     </div>
   </section>
 
   <section id="quickstart">
     <h2>Quickstart</h2>
-    <p class="lead">Install once, then drive everything through <code style="font-family: var(--mono);">wf</code> commands — or just describe what you want in natural language.</p>
+    <p class="lead">Install once, then drive everything through <code>wf</code> commands — or just describe what you want in natural language.</p>
 
     <div class="steps">
       <div class="step">
         <div class="step-badge">1</div>
         <div class="step-body">
           <h3>Install the skill</h3>
-          <div class="code-block">npx skills add zetdotcom/workflow-agent --skill wf   <span class="c"># add -g for global</span></div>
+          <p>Requires Node.js 18+ (for <code>npx</code>) and an agent that supports Agent Skills.</p>
+          <div class="copy-wrap">
+            <div class="code-block" id="install-cmd">npx skills add zetdotcom/workflow-agent --skill wf   <span class="c"># add -g for global</span></div>
+            <button class="copy-btn" type="button" data-copy-target="install-cmd" aria-label="Copy install command">Copy</button>
+          </div>
+          <p class="hint">Prefer a local checkout? Clone the repo and run <code>./install.sh</code> — it symlinks <code>skills/wf</code> into <code>~/.agents/skills/</code>, so your edits apply immediately. Override the destination with <code>AGENTS_SKILLS_DIR</code>.</p>
         </div>
       </div>
 
@@ -742,9 +894,10 @@ Done
         <div class="step-badge">2</div>
         <div class="step-body">
           <h3>Start a change — <code>wf new</code></h3>
-          <p>Creates the change folder with <code style="font-family: var(--mono);">CONTEXT.md</code>, <code style="font-family: var(--mono);">STATUS.md</code>, and the four status folders. Then run <code style="font-family: var(--mono);">wf discover</code> — a short interview that turns your raw notes into structured context.</p>
+          <p>Creates the change folder with <code>CONTEXT.md</code>, <code>STATUS.md</code>, and the four status folders. Then run <code>wf discover</code> — a short interview that turns your raw notes into structured context.</p>
           <div class="code-block">wf new        <span class="c"># scaffold PYE-1123-auth-refactor</span>
 wf discover   <span class="c"># interview → complete CONTEXT.md</span></div>
+          <p class="hint">Don't want to memorise commands? Run bare <code>wf</code> for an interactive menu, or just describe what you want — “break this epic into tickets” routes to the right command.</p>
         </div>
       </div>
 
@@ -761,7 +914,7 @@ wf discover   <span class="c"># interview → complete CONTEXT.md</span></div>
         <div class="step-badge">4</div>
         <div class="step-body">
           <h3>Plan a ticket — <code>wf plan</code></h3>
-          <p>The agent explores your actual codebase, validates assumptions, and writes a detailed phased <code style="font-family: var(--mono);">PLAN.md</code> plus a concise <code style="font-family: var(--mono);">PLAN-BRIEF.md</code> for human review.</p>
+          <p>The agent explores your actual codebase, validates assumptions, and writes a detailed phased <code>PLAN.md</code> plus a concise <code>PLAN-BRIEF.md</code> for human review.</p>
           <div class="code-block">wf plan PYE-1123 001
 wf plan-review PYE-1123 001   <span class="c"># optional sanity check</span></div>
         </div>
@@ -771,7 +924,7 @@ wf plan-review PYE-1123 001   <span class="c"># optional sanity check</span></di
         <div class="step-badge">5</div>
         <div class="step-body">
           <h3>Implement, phase by phase — <code>wf implement</code></h3>
-          <p>Executes one verifiable phase at a time, runs tests, and records results in <code style="font-family: var(--mono);">PROGRESS.md</code>. Resume any phase later.</p>
+          <p>Executes one verifiable phase at a time, runs tests, and records results in <code>PROGRESS.md</code>. Resume any phase later.</p>
           <div class="code-block">wf implement PYE-1123 001 phase 1
 wf impl-review PYE-1123 001   <span class="c"># optional code review vs plan</span></div>
         </div>
@@ -1012,25 +1165,95 @@ wf status PYE-1123 001</div>
     </details>
   </section>
 
-  <section id="compat">
-    <h2>Compatibility</h2>
-    <p class="lead">Works with AI agents that support Agent Skills and filesystem tools. Interactive selection uses the agent's question/choice tool.</p>
-    <div class="compat">
-      <span class="compat-badge">OpenCode</span>
-      <span class="compat-badge">Claude Code</span>
-      <span class="compat-badge">Cursor</span>
-      <span class="compat-badge">Any skills-capable agent</span>
+  <section id="faq">
+    <h2>FAQ</h2>
+    <p class="lead">The questions developers ask before installing.</p>
+    <div class="faq-grid">
+      <div class="faq-item ceramic">
+        <h3>Should I commit <code>.workflow/</code>?</h3>
+        <p>Your call, and both work. Commit it when you want teammates and CI-adjacent reviewers to see the plan and progress alongside the diff. Add it to <code>.gitignore</code> when you treat it as a personal scratchpad. Nothing in the skill depends on it being tracked.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>Will it bloat my repo?</h3>
+        <p>It's plain Markdown — typically a few KB per ticket. No binaries, no lockfiles, no generated artifacts. A large epic with a dozen planned tickets is still smaller than a single screenshot.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>Does it burn extra tokens?</h3>
+        <p>Files are read on demand, not preloaded. A command loads its own reference plus the specific ticket it touches. Overall it usually costs fewer tokens than re-explaining a project from scratch each session.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>Do I need Jira or a ticket tracker?</h3>
+        <p>No. Tickets are directories. If you already use an external tracker, reuse its IDs as change prefixes — <code>PYE-1123</code> addresses <code>PYE-1123-auth-refactor</code> — so the two stay readable side by side.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>What about multiple developers?</h3>
+        <p>Ticket directories are separate files, so parallel work rarely collides. <code>STATUS.md</code> is derived, not authoritative — if it conflicts or drifts, <code>wf status</code> reconciles it from the folder layout.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>Can I use it for a one-line fix?</h3>
+        <p>Yes, and you should skip most of it. Use <code>wf new</code> plus a single ticket, skip both review gates, and go straight to <code>wf implement</code>. The reviews and breakdown exist for work that actually warrants them.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>How do I remove it?</h3>
+        <p>Delete the skill from <code>~/.agents/skills/wf</code> (or your project's skills directory) and delete <code>.workflow/</code>. Nothing else is written, and no global state exists outside those two paths.</p>
+      </div>
+      <div class="faq-item ceramic">
+        <h3>What if the plan is wrong?</h3>
+        <p>When the codebase contradicts the plan, the agent stops and reports the mismatch instead of improvising. Deviations that you accept are recorded in <code>PROGRESS.md</code>, so the trail stays honest.</p>
+      </div>
     </div>
   </section>
 
-</div>
+  <section id="compat">
+    <h2>Compatibility</h2>
+    <p class="lead">Any AI coding agent that supports Agent Skills and has filesystem tools can run <code>wf</code>. Interactive selection uses the agent's own question/choice tool, so prompts feel native.</p>
+    <div class="compat">
+      <span class="compat-badge">OpenCode</span>
+      <span class="compat-badge">Claude Code</span>
+      <span class="compat-badge">Any skills-capable agent</span>
+    </div>
+    <p class="hint">Built and exercised on OpenCode and Claude Code. Other skills-capable agents should work; if yours doesn't, <a href="https://github.com/zetdotcom/workflow-agent/issues">open an issue</a>.</p>
+  </section>
+
+</main>
 
 <footer>
   <div class="footer-inner">
-    <div>&copy; 2026 zetdotcom &middot; MIT License &middot; <a href="llms.txt">llms.txt</a></div>
+    <div>&copy; 2026 zetdotcom &middot; <a href="https://github.com/zetdotcom/workflow-agent/blob/main/LICENSE">MIT License</a> &middot; <a href="llms.txt">llms.txt</a></div>
     <div>Created by <a href="https://github.com/zetdotcom">zetdotcom</a> &middot; <a href="https://github.com/zetdotcom/workflow-agent">github.com/zetdotcom/workflow-agent</a></div>
   </div>
 </footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var source = document.getElementById(btn.dataset.copyTarget);
+    if (!source) return;
+    var text = source.cloneNode(true);
+    text.querySelectorAll('.c').forEach(function (c) { c.remove(); });
+    var value = text.textContent.trim();
+
+    var done = function () {
+      btn.textContent = 'Copied';
+      btn.dataset.copied = 'true';
+      setTimeout(function () { btn.textContent = 'Copy'; btn.dataset.copied = 'false'; }, 1800);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(value).then(done);
+      return;
+    }
+    var ta = document.createElement('textarea');
+    ta.value = value;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'absolute';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } finally { document.body.removeChild(ta); }
+  });
+});
+</script>
 
 </body>
 </html>
