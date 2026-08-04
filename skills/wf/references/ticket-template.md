@@ -1,3 +1,8 @@
+---
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+
 # NNN — Ticket Title
 
 ## Summary
@@ -8,6 +13,9 @@
 
 **Acceptance Criteria:**
 - [ ]
+- [ ]
+
+**Testing Required:**
 - [ ]
 
 **Risk:** low | medium | high
@@ -27,11 +35,3 @@
 
 **Edge Cases / Gotchas:**
 -
-
-## Implementation Plan
-
-_Filled by `wf-plan` skill._
-
-## Review Notes
-
-_Filled by `wf-plan-review` and `wf-impl-review` skills._

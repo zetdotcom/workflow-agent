@@ -19,7 +19,7 @@ mkdir -p "$SKILLS_DST"
 linked=0
 skipped=0
 
-for skill_dir in "$SKILLS_SRC"/wf-*/; do
+for skill_dir in "$SKILLS_SRC"/wf/; do
   name="$(basename "$skill_dir")"
   target="$SKILLS_DST/$name"
 

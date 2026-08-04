@@ -1,158 +1,141 @@
 # workflow-agent
 
-A ticket-lifecycle workflow system for AI coding agents. Gives your agent structured project management — from initiative discovery through implementation to completion.
+Unified workflow skill for AI coding agents. Persists change context, tickets, plans, reviews, and progress in the repository so work can resume across sessions.
 
+```text
+new -> discover -> breakdown -> plan -> implement -> complete
+                              \-> optional reviews -/
 ```
-init → breakdown → plan → plan-review → implement → impl-review → complete
+
+## Usage
+
+Invoke `wf` without arguments for an interactive menu, use a command directly, or describe what you want in natural language.
+
+```text
+wf
+wf new
+wf discover
+wf breakdown
+wf plan PYE-1123 001
+wf plan-review PYE-1123 001
+wf implement PYE-1123 001 phase 1
+wf impl-review PYE-1123 001
+wf complete PYE-1123 001
+wf status
+wf status PYE-1123 001
 ```
 
-## Why
+## Storage
 
-AI agents are great at coding but lose track of larger projects. They forget context between sessions, skip steps, and can't resume interrupted work. workflow-agent solves this by giving your agent a filesystem-based ticket system it can read and update autonomously.
+Workflow data lives in the project being managed:
 
-## How It Works
-
-Your codebase gets a `.workflow/` directory:
-
-```
+```text
 .workflow/
-├── inits/
-│   └── auth-refactor/
-│       ├── SPEC.md              # Initiative scope & goals
-│       ├── STATUS.md            # Progress tracker
-│       ├── 1.backlog/           # Tickets not yet started
-│       │   └── 002-jwt-rotation.md
-│       ├── 2.ready/            # Planned, ready to implement
-│       ├── 3.in-progress/      # Currently being worked on
-│       └── 4.done/             # Completed & archived
+└── changes/
+    └── PROJ-123-auth-refactor/
+        ├── CONTEXT.md
+        ├── STATUS.md
+        ├── 1.draft/
+        │   └── 001-remove-old-deposit/
+        │       └── TICKET.md
+        ├── 2.todo/
+        ├── 3.in-progress/
+        └── 4.done/
 ```
 
-Each ticket is a markdown file containing summary, acceptance criteria, technical deep-dive, implementation plan, and review notes — all managed by the agent through natural language commands.
+Ticket directories move between numbered folders as their status changes. Directory location is source of truth; `STATUS.md` provides a concise progress view.
 
-## Skills
+Files appear only when needed:
 
-| Skill | Trigger | What it does |
-|-------|---------|--------------|
-| `wf-new-init` | "new init", "create initiative" | Bootstraps initiative folder structure |
-| `wf-discover` | "discover", "flesh out spec" | Interviews you to build a complete SPEC.md before breakdown |
-| `wf-breakdown` | "breakdown", "create tickets" | Interviews you, splits scope into deployable tickets |
-| `wf-plan` | "plan NNN" | Explores codebase, writes implementation plan into ticket |
-| `wf-plan-review` | "review plan NNN" | Checks plan for completeness, risks, feasibility |
-| `wf-implement` | "implement NNN" | Executes the plan, writes code, runs tests |
-| `wf-impl-review` | "review impl NNN" | Reviews code changes against plan + acceptance criteria |
-| `wf-complete` | "done NNN", "complete NNN" | Verifies all AC met, archives ticket |
-| `wf-status` | "status", "progress" | Read-only progress overview |
-| `wf-how-to` | "how does workflow work" | Explains the system to new users |
+```text
+001-remove-old-deposit/
+├── TICKET.md       # Goal, scope, acceptance criteria, risk, technical context
+├── PLAN.md         # Detailed phased implementation plan
+├── PLAN-BRIEF.md   # Concise human review of changes, data flow, decisions, and risks
+├── PROGRESS.md     # Phase results, verification, deviations, and PR feedback
+└── REVIEWS.md      # Plan and implementation reviews
+```
+
+Breakdown creates only `TICKET.md`. Planning creates both `PLAN.md` and `PLAN-BRIEF.md`. Progress and review files are created lazily when first needed.
+
+Ticket-scoped commands resolve change first, then ticket. A unique change ID prefix such as `PYE-1123` can address `PYE-1123-change-deposit`.
+
+Implementation plans are comprehensive and divided into independently verifiable phases. `PLAN.md` is implementation source of truth. `PLAN-BRIEF.md` gives humans a concise explanation of main changes, architecture/data flow, decisions, risks, rollout, testing, and review questions. Use `wf implement PYE-1123 001 phase 3` to execute or resume one phase.
+
+`done` means implementation completed; PR may be ready for review, ready to merge, merged, or receiving feedback. PR feedback can update code and ticket notes while ticket remains done. Explicit reopening moves it back to in-progress.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `wf new` | Create a change and its workflow structure |
+| `wf discover` | Turn raw context into a structured change definition |
+| `wf breakdown` | Propose and create independently deployable tickets |
+| `wf plan` | Explore code and write a detailed phased implementation plan |
+| `wf plan-review` | Optionally review a plan before coding |
+| `wf implement` | Execute and verify one implementation phase at a time |
+| `wf impl-review` | Optionally review code against plan and acceptance criteria |
+| `wf complete` | Mark a verified ticket done |
+| `wf status` | Ask for change, then show scoped progress and next action |
 
 ## Install
 
-### Skills CLI (recommended)
-
-Repository already uses supported catalog layout: `skills/<skill-name>/SKILL.md`.
-
-Install all workflow skills from this repo:
+### Skills CLI
 
 ```bash
-npx skills add <owner>/workflow-agent --skill '*'
+npx skills add zetdotcom/workflow-agent --skill wf
 ```
 
-Install globally for Zed / Cline / Warp and other agents that support global skills:
+Install globally:
 
 ```bash
-npx skills add <owner>/workflow-agent --skill '*' -g
+npx skills add zetdotcom/workflow-agent --skill wf -g
 ```
 
-Install only for Zed:
+### Development Symlink
+
+Clone repository, then run:
 
 ```bash
-npx skills add <owner>/workflow-agent --skill '*' -a zed
-```
-
-Notes:
-- `--skill '*'` matters here because repo contains multiple skills.
-- Without it, `skills` CLI may prompt for selection instead of installing whole workflow set.
-- After publishing repo to GitHub, replace `<owner>` with your GitHub account or org.
-
-### Manual install
-
-```bash
-git clone https://github.com/YOUR_USER/workflow-agent.git
-cd workflow-agent
 ./install.sh
 ```
 
-This symlinks all skills to `~/.agents/skills/`. Use `--force` to overwrite existing skills.
+Installer symlinks `skills/wf` to `~/.agents/skills/wf`. Edits in this repository become globally available immediately. Use `./install.sh --force` to replace an existing installation.
 
-To customize the install location:
+Custom destination:
 
 ```bash
 AGENTS_SKILLS_DIR=/path/to/skills ./install.sh
 ```
 
-### Cursor / Windsurf / Other Editors
+## Skill Layout
 
-These skills work as system prompts or custom instructions in any AI-powered editor:
-
-1. **As rules/instructions**: Copy the content of any `SKILL.md` into your editor's custom instructions or rules file (e.g., `.cursorrules`, `.windsurfrules`)
-
-2. **As context files**: Reference the SKILL.md files directly in your prompt or context configuration
-
-3. **Key adaptation points**:
-   - Replace tool-specific references (e.g., `TodoWrite`) with equivalents in your editor
-   - The `.workflow/` directory structure is editor-agnostic — works anywhere
-   - Trigger phrases work as natural language in any chat interface
-
-The core workflow (folders + markdown tickets) requires no specific tooling — any agent that can read/write files can use it.
-
-## For AI Agents
-
-> This section is optimized for LLM consumption.
-
-### System Overview
-
-workflow-agent is a filesystem-based ticket lifecycle system. Tickets are markdown files that move between status folders (`1.backlog/` → `2.ready/` → `3.in-progress/` → `4.done/`). Each initiative lives under `.workflow/inits/<slug>/`.
-
-### When to Invoke Each Skill
-
-- User wants to **start a new project/epic** → `wf-new-init`
-- User wants to **flesh out a spec before breakdown** → `wf-discover`
-- User wants to **break work into tickets** → `wf-breakdown`
-- User wants to **plan a specific ticket** → `wf-plan`
-- User wants to **review a plan before coding** → `wf-plan-review`
-- User wants to **write code for a ticket** → `wf-implement`
-- User wants to **review implementation** → `wf-impl-review`
-- User wants to **mark work as done** → `wf-complete`
-- User wants to **check progress** → `wf-status`
-- User wants to **understand the system** → `wf-how-to`
-
-### Ticket File Format
-
-```markdown
-# NNN - Title
-
-## Summary
-Brief description of what this ticket delivers.
-
-## Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-## Technical Deep-Dive
-Implementation context, affected files, dependencies.
-
-## Implementation Plan
-<!-- Written by wf-plan -->
-
-## Review Notes
-<!-- Written by wf-plan-review and wf-impl-review -->
+```text
+skills/wf/
+├── SKILL.md
+└── references/
+    ├── new.md
+    ├── discover.md
+    ├── breakdown.md
+    ├── plan.md
+    ├── plan-review.md
+    ├── implement.md
+    ├── impl-review.md
+    ├── complete.md
+    ├── status.md
+    ├── context-template.md
+    ├── ticket-template.md
+    ├── plan-template.md
+    ├── plan-brief-template.md
+    ├── progress-template.md
+    └── reviews-template.md
 ```
 
-### Conventions
+`SKILL.md` owns routing and shared workflow contracts. Command references own operation-specific instructions; templates own generated file structure. All references resolve relative to skill directory.
 
-- Ticket numbers are zero-padded 3 digits: `001`, `002`, etc.
-- Each ticket should be independently deployable (1-3 days of work)
-- STATUS.md tracks overall progress per initiative
-- Moving files between folders = changing status
+## Compatibility
+
+Works with agents supporting Agent Skills and filesystem tools. Interactive selection uses agent's question/choice tool.
 
 ## License
 
