@@ -74,7 +74,7 @@ code { font-family: var(--mono); }
 
 .skip-link {
   position: absolute;
-  left: -9999px;
+  left: 0;
   top: 0;
   z-index: 200;
   padding: 0.7rem 1.2rem;
@@ -82,8 +82,9 @@ code { font-family: var(--mono); }
   background: var(--deep-moss);
   color: var(--crisp-text);
   font-weight: 600;
+  transform: translateY(-200%);
 }
-.skip-link:focus { left: 0; color: var(--crisp-text); }
+.skip-link:focus { transform: translateY(0); color: var(--crisp-text); }
 
 .container { max-width: 940px; margin: 0 auto; padding: 0 2rem; }
 
@@ -99,7 +100,7 @@ nav {
   max-width: 940px; margin: 0 auto; padding: 0.9rem 2rem;
   display: flex; align-items: center; justify-content: space-between;
 }
-.nav-brand { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--deep-moss); }
+.nav-brand { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--deep-moss); white-space: nowrap; }
 .nav-brand span { color: var(--crisp-sage); }
 .nav-links { display: flex; gap: 1.5rem; align-items: center; font-size: 0.9rem; }
 .nav-links a.gh {
@@ -336,6 +337,7 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
 .status-copy > p { color: rgba(239,239,239,0.78); font-size: 0.95rem; }
 .status-benefits { display: grid; gap: 0.75rem; margin-top: 1.4rem; }
 .status-benefit { display: flex; gap: 0.7rem; align-items: flex-start; color: rgba(239,239,239,0.82); font-size: 0.86rem; }
+.status-benefit > span { min-width: 0; }
 .status-benefit::before {
   content: '';
   flex: 0 0 auto;
@@ -608,7 +610,13 @@ details.adv .adv-body code { font-family: var(--mono); background: rgba(26, 51, 
 .compare tbody tr + tr td { border-top: 1px solid rgba(255,255,255,0.08); }
 .compare td { color: rgba(239,239,239,0.78); }
 .compare td:first-child { color: var(--crisp-text); font-weight: 600; }
-.compare-wrap { padding: 0.6rem 0.6rem; overflow-x: auto; }
+.compare-wrap { padding: 0.6rem 0.6rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll-hint {
+  display: none;
+  margin-top: 0.65rem;
+  color: rgba(26, 51, 36, 0.55);
+  font-size: 0.78rem;
+}
 
 /* FAQ */
 .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
@@ -644,30 +652,103 @@ footer {
 footer a { color: var(--crisp-sage); }
 footer a:hover { color: var(--crisp-text); }
 
+/* Tablet */
+@media (max-width: 860px) {
+  .container, .nav-inner, .footer-inner { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .nav-links { gap: 1.1rem; font-size: 0.85rem; }
+}
+
 @media (max-width: 640px) {
+  section { padding: 2.25rem 0; }
+  section h2 { font-size: 1.45rem; }
+  section .lead { font-size: 0.98rem; }
+
+  .hero { padding: 2.5rem 0 2rem; }
   .hero h1 { font-size: 2.2rem; }
-  .nav-links { gap: 1rem; }
+  .hero .tagline { font-size: 1.1rem; }
+  .hero .sub { font-size: 0.94rem; }
+  .hero-cta { gap: 0.7rem; margin-bottom: 1.5rem; }
+  .btn { padding: 0.65rem 1.3rem; font-size: 0.9rem; }
+
+  /* Nav: keep brand + GitHub always; drop secondary links */
+  .nav-inner { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+  .nav-links { gap: 0.9rem; font-size: 0.82rem; }
+  .nav-links a:not(.gh) { display: none; }
+  .nav-links a[href="#quickstart"] { display: inline; }
+  .nav-links a.gh { padding: 0.4rem 0.85rem; }
+
   .hero-visual { padding: 2.5rem 1rem 1rem; }
   .workflow-stage { grid-template-columns: repeat(2, 1fr); gap: 1.5rem 0.8rem; }
+  .ticket-stack { height: 124px; padding: 0 0.3rem; }
+  .ticket-card { left: 0.3rem; right: 0.3rem; height: 96px; padding: 0.7rem; }
+  .ticket-summary { font-size: 0.68rem; }
+  .step-tooltip { width: min(230px, 78vw); }
   .status-station:nth-child(odd) .step-tooltip { left: 0; transform: translate(0, 8px); }
   .status-station:nth-child(even) .step-tooltip { left: auto; right: 0; transform: translate(0, 8px); }
   .status-station:nth-child(odd):hover .step-tooltip,
   .status-station:nth-child(odd):focus .step-tooltip,
+  .status-station:nth-child(odd):focus-within .step-tooltip,
   .status-station:nth-child(even):hover .step-tooltip,
-  .status-station:nth-child(even):focus .step-tooltip { transform: translate(0, 0); }
+  .status-station:nth-child(even):focus .step-tooltip,
+  .status-station:nth-child(even):focus-within .step-tooltip { transform: translate(0, 0); }
   .step-tooltip::after { display: none; }
+
   .status-spotlight { grid-template-columns: 1fr; }
+  .status-copy, .status-terminal { padding: 1.4rem; }
+  .status-copy h3 { font-size: 1.2rem; }
+
+  .why-card { padding: 1.3rem; }
+  .steps { gap: 1.25rem; }
+  .step { gap: 0.9rem; }
+  .step-badge { width: 2rem; height: 2rem; font-size: 0.85rem; }
+  .code-block { padding: 1rem 1.1rem; font-size: 0.8rem; }
+  .step-body .code-block { padding: 0.8rem 0.95rem; font-size: 0.78rem; }
+  .copy-wrap .code-block { padding-right: 1.1rem; padding-top: 2.9rem; }
+  .copy-btn { top: 0.55rem; right: 0.55rem; }
+
   .filesystem-grid { grid-template-columns: 1fr; }
+  .folder-visual, .creation-map { padding: 1.3rem; }
+  .folder-tree { font-size: 0.7rem; }
+  .folder-tree ul { margin-left: 0.2rem; padding-left: 0.85rem; }
+  .folder-tree ul > li::before { left: -0.85rem; width: 0.5rem; }
+  .creation-row { grid-template-columns: 1fr; gap: 0.3rem; }
+
   .lifecycle-canvas { padding: 1.25rem; }
   .canvas-legend { justify-content: flex-start; }
   .lifecycle-lane { grid-template-columns: 1fr; gap: 0.5rem; }
+  .life-node { min-height: 0; }
   .life-arrow { transform: rotate(90deg); }
   .review-branch { grid-template-columns: 1fr; gap: 0.75rem; margin-top: 1rem; }
   .review-node:first-child, .review-node:last-child { grid-column: 1; }
   .status-rail { align-items: flex-start; flex-wrap: wrap; }
-  .compare { min-width: 620px; }
+
+  .compare-wrap { padding: 0; }
+  .compare { min-width: 560px; }
+  .compare th, .compare td { padding: 0.7rem 0.8rem; }
+  .scroll-hint { display: block; }
+
   .faq-item { padding: 1.2rem 1.3rem; }
+
+  details.adv summary { padding: 1rem 1.1rem; font-size: 0.95rem; }
+  details.adv .adv-body { padding: 0 1.1rem 1.1rem; }
+  .file-list li { flex-direction: column; gap: 0.15rem; }
+  .file-list code { min-width: 0; }
+
   .footer-inner { flex-direction: column; text-align: center; }
+}
+
+@media (max-width: 380px) {
+  .container, .nav-inner, .footer-inner { padding-left: 1rem; padding-right: 1rem; }
+  .hero h1 { font-size: 1.95rem; }
+  .hero-cta { flex-direction: column; align-items: stretch; }
+  .btn { text-align: center; }
+  .workflow-stage { gap: 1.2rem 0.6rem; }
+  .station-label { font-size: 0.62rem; letter-spacing: 0.05em; }
+  .ticket-stack { height: 118px; }
+  .ticket-card { height: 92px; padding: 0.6rem; }
+  .ticket-id { font-size: 0.61rem; }
+  .ticket-summary { margin-top: 0.4rem; font-size: 0.64rem; line-height: 1.3; }
+  .step-tooltip { width: min(230px, 86vw); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -832,6 +913,7 @@ footer a:hover { color: var(--crisp-text); }
         </tbody>
       </table>
     </div>
+    <p class="scroll-hint">Swipe the table sideways to compare all three columns.</p>
   </section>
 
   <section id="status">
@@ -843,10 +925,10 @@ footer a:hover { color: var(--crisp-text); }
         <h3>Your project handoff, available instantly.</h3>
         <p>No rereading every diff, ticket, plan, or conversation. <code>wf status PYE-1123</code> inspects persisted workflow state and gives you a concise, trustworthy view of the selected change.</p>
         <div class="status-benefits">
-          <div class="status-benefit">Shows every ticket grouped by in progress, todo, and done.</div>
-          <div class="status-benefit">Distinguishes planned tickets from those still needing a plan.</div>
-          <div class="status-benefit">Reconciles STATUS.md against ticket folders when summaries drift.</div>
-          <div class="status-benefit">Ends with the exact recommended <code>wf</code> command to run next.</div>
+          <div class="status-benefit"><span>Shows every ticket grouped by in progress, todo, and done.</span></div>
+          <div class="status-benefit"><span>Distinguishes planned tickets from those still needing a plan.</span></div>
+          <div class="status-benefit"><span>Reconciles <code>STATUS.md</code> against ticket folders when summaries drift.</span></div>
+          <div class="status-benefit"><span>Ends with the exact recommended <code>wf</code> command to run next.</span></div>
         </div>
       </div>
       <div class="status-terminal canopy" role="group" aria-label="Example output from wf status">
