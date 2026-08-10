@@ -1,6 +1,6 @@
 # workflow-agent
 
-> Filesystem-based ticket lifecycle skill for AI coding agents. One `wf` skill manages work from idea to completed implementation — context, tickets, phased plans, reviews, and progress persist as markdown files in the repository, so work resumes across sessions. No external tools, servers, or databases.
+> Filesystem-based ticket lifecycle skill for AI coding agents. One `wf` skill manages work from idea to completed implementation — context, tickets, phased plans, reviews, and progress persist as markdown files in the repository, so work resumes across sessions. No servers or databases.
 
 Site: https://michalzet.com/workflow-agent
 Repository: https://github.com/zetdotcom/workflow-agent
@@ -27,6 +27,12 @@ Lifecycle: new -> discover -> breakdown -> plan -> implement -> complete, with o
 - `wf status [change] [ticket]` — scoped progress plus exact recommended next action
 
 Ticket-scoped commands resolve change first, then ticket. Unique ID prefix such as `PYE-1123` addresses change `PYE-1123-auth-refactor`. Example: `wf implement PYE-1123 001 phase 3`.
+
+## Optional worktrees
+
+Add global `--worktree` to any invocation, such as `wf plan PYE-1123 001 --worktree`, or request a worktree naturally. Before normal command dispatch, agent can create a new branch from current/local `main`/another validated ref, select an available existing branch, or create a detached snapshot. Detached mode warns that commits have no branch. New paths are siblings named from repository plus sanitized branch/ref; reuse requires a registered identity match and confirmation. Occupied branches, invalid refs, and path collisions are never forced or overwritten. All later operations explicitly target selected root; missing workflow metadata stops non-`new` commands without caller-tree fallback.
+
+After selection, optional dependency installation detects root lockfiles. Commands are `npm ci`, `pnpm install --frozen-lockfile`, Yarn frozen/immutable based on declared major, or `bun install --frozen-lockfile`. Multiple managers require exact choice. Exact command/path and lifecycle-script risk are shown before separate confirmation. No lockfile or decline skips install; failure requires explicit continue/stop choice.
 
 ## Storage model
 
@@ -69,4 +75,4 @@ npx skills add zetdotcom/workflow-agent --skill wf -g   # global
 
 ## Compatibility
 
-Any AI agent supporting Agent Skills and filesystem tools (e.g., OpenCode, Claude Code, Cursor). Interactive selection uses the agent's question/choice tool.
+Any AI agent supporting Agent Skills, filesystem tools, question/choice prompts, Git command execution, and explicit command working directories (e.g., OpenCode, Claude Code, Cursor). Package-manager tools are optional.

@@ -865,8 +865,8 @@ footer a:hover { color: var(--crisp-text); }
       </div>
       <div class="why-card canopy">
         <div class="icon">🔌</div>
-        <h3>No external tools</h3>
-        <p>No Jira, no database, no server. Ticket directories moving between numbered folders are the source of truth. Works with any agent that supports skills and can read and write files.</p>
+        <h3>No hosted tools</h3>
+        <p>No Jira, no database, no server. Ticket directories moving between numbered folders are the source of truth. Optional isolated worktrees use local Git.</p>
       </div>
     </div>
   </section>
@@ -984,6 +984,7 @@ Done
           <div class="code-block">wf new        <span class="c"># scaffold PYE-1123-auth-refactor</span>
 wf discover   <span class="c"># interview → complete CONTEXT.md</span></div>
           <p class="hint">Don't want to memorise commands? Run bare <code>wf</code> for an interactive menu, or just describe what you want — “break this epic into tickets” routes to the right command.</p>
+          <p class="hint">Need isolation? Add <code>--worktree</code> to any command or ask naturally. Choose a new branch, available branch, or detached snapshot. The agent validates refs and collisions, confirms reuse, then runs every operation in the selected sibling worktree.</p>
         </div>
       </div>
 
@@ -1281,7 +1282,7 @@ wf status PYE-1123 001</div>
       </div>
       <div class="faq-item ceramic">
         <h3>How do I remove it?</h3>
-        <p>Delete the skill from <code>~/.agents/skills/wf</code> (or your project's skills directory) and delete <code>.workflow/</code>. Nothing else is written, and no global state exists outside those two paths.</p>
+        <p>Delete the skill and <code>.workflow/</code>. If you opted into worktree mode, remove any created worktrees or branches separately with normal Git commands; workflow-agent never deletes them automatically.</p>
       </div>
       <div class="faq-item ceramic">
         <h3>What if the plan is wrong?</h3>
@@ -1292,7 +1293,7 @@ wf status PYE-1123 001</div>
 
   <section id="compat">
     <h2>Compatibility</h2>
-    <p class="lead">Any AI coding agent that supports Agent Skills and has filesystem tools can run <code>wf</code>. Interactive selection uses the agent's own question/choice tool, so prompts feel native.</p>
+    <p class="lead">Agents need Agent Skills, filesystem tools, question/choice prompts, Git execution, and explicit command working directories. Optional package installation also needs selected package-manager executable.</p>
     <div class="compat">
       <span class="compat-badge">OpenCode</span>
       <span class="compat-badge">Claude Code</span>

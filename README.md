@@ -23,7 +23,18 @@ wf impl-review PYE-1123 001
 wf complete PYE-1123 001
 wf status
 wf status PYE-1123 001
+wf plan PYE-1123 001 --worktree
 ```
+
+Add `--worktree` anywhere in any `wf` invocation, or ask naturally (for example, “plan LOCAL-1 001 in a separate worktree”). Worktree mode is always opt-in. Before normal command dispatch, agent offers:
+
+- New branch from current commit (recommended), local `main`, or another validated ref.
+- Available existing local branch.
+- Detached snapshot, with warning that later commits do not belong to a branch.
+
+New worktrees are siblings named `<repository>-<sanitized-branch-or-ref>`. Registered matching worktrees can be reused only after confirmation; occupied branches and path collisions are never overwritten. After setup, every workflow operation targets selected worktree explicitly. If selected ref lacks `.workflow/`, ticket commands stop instead of falling back to original tree; `wf new` may create metadata normally.
+
+Setup then offers optional dependency installation. Root lockfiles map to frozen commands: `npm ci`, `pnpm install --frozen-lockfile`, Yarn `--frozen-lockfile` or `--immutable` based on declared Yarn major, and `bun install --frozen-lockfile`. Multiple managers require a choice. Agent shows exact command and directory, warns that lifecycle scripts may run, and asks again before execution. Declines and absent lockfiles continue without install; missing executables or failed commands require explicit continue/stop choice.
 
 ## Storage
 
@@ -123,6 +134,7 @@ skills/wf/
     ├── impl-review.md
     ├── complete.md
     ├── status.md
+    ├── worktree.md
     ├── context-template.md
     ├── ticket-template.md
     ├── plan-template.md
@@ -135,7 +147,11 @@ skills/wf/
 
 ## Compatibility
 
-Works with agents supporting Agent Skills and filesystem tools. Interactive selection uses agent's question/choice tool.
+Works with agents supporting Agent Skills, filesystem tools, question/choice prompts, Git command execution, and explicit command working directories. Package-manager executable is needed only when optional dependency installation is confirmed.
+
+## Verification
+
+Run `./scripts/verify.sh` for static contracts, development-install exposure, and disposable Git worktree recipes. Agent-only prompt and continuation cases live in `tests/manual-worktree-conformance.md`.
 
 ## License
 
