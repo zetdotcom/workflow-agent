@@ -93,7 +93,7 @@ Do not create empty optional files. Commands must read only files relevant to th
 - `done -> in-progress` is valid when user explicitly requests reopening; record reason and update dates.
 - Follow-up work beyond original ticket or PR-review scope should become a new ticket.
 - Update `STATUS.md` whenever ticket folders change.
-- Suggest exact `wf <command>` next action after every mutating command.
+- Suggest exact `wf <command>` next action after every mutating command and copy that command to the clipboard.
 
 ## Date Handling
 
@@ -109,5 +109,6 @@ Use actual current date in `YYYY-MM-DD` format, never placeholder text.
 
 - Keep output concise and actionable.
 - Use actual `wf <command>` syntax in next-step guidance.
+- Whenever suggesting a next `wf` command, use the Bash tool to copy only the exact command to the clipboard. Use `pbcopy` on macOS, `wl-copy` or `xclip -selection clipboard` on Linux, and `clip.exe` on Windows. Detect availability first, treat clipboard failure as non-fatal, and report whether the command was copied.
 - Report files moved or created and verification performed.
 - Surface blockers and unmet prerequisites explicitly.
