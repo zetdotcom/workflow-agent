@@ -11,6 +11,23 @@ Manage work from initial idea through completed implementation. Support single-t
 
 Determine intent, then read the matching command reference before acting. Paths are relative to this skill directory.
 
+### Global Worktree Modifier
+
+Before normal command routing, detect whether invocation contains `--worktree` in any position or naturally asks to run workflow work in an isolated Git worktree. Worktree intent is an execution modifier, not a command.
+
+When worktree intent is present:
+
+1. Preserve original invocation and inferred command arguments. Remove only explicit `--worktree` tokens from payload that normal command receives.
+2. If command intent is missing or ambiguous, resolve it using normal routing behavior before changing repository state.
+3. Read and execute `references/worktree.md` before reading command reference. This is exception to one-reference rule below.
+4. After setup succeeds, treat selected worktree root as execution root for rest of invocation:
+   - Use absolute paths rooted there for every file tool operation.
+   - Set that directory as working directory for every Bash operation.
+   - Resolve `.workflow/` only there; never read or mutate caller worktree as fallback.
+5. Continue preserved command under normal routing and lifecycle rules. If setup stops or is cancelled, do not dispatch command.
+
+Without explicit or natural-language worktree intent, skip setup and preserve existing behavior exactly.
+
 | Command | Purpose | Instructions |
 |---|---|---|
 | `new` | Start a change | `references/new.md` |
@@ -30,7 +47,7 @@ Routing behavior:
 3. **Natural language** (for example, "I want to start working on something"): infer command, confirm with user, then load its reference.
 4. **Unknown command**: show command menu. Do not guess an unsupported operation.
 
-Read only relevant command reference for current operation. If operation changes during conversation, read new command reference before continuing.
+Read only relevant command reference for current operation. Worktree-modified invocation may additionally read `references/worktree.md` before command reference. If operation changes during conversation, read new command reference before continuing.
 
 ## Storage Model
 
