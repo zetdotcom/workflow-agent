@@ -9,14 +9,17 @@ updated: YYYY-MM-DD
 
 **Goal:**
 
+**User-Visible / Operational Behavior:**
+
 **Scope:**
 
 **Acceptance Criteria:**
-- [ ]
-- [ ]
+- [ ] Observable outcome
+- [ ] Observable boundary or failure behavior
 
-**Testing Required:**
-- [ ]
+**Verification Required:**
+- [ ] Automated check at a stable public seam
+- [ ] Direct runtime or smoke scenario for the changed surface
 
 **Risk:** low | medium | high
 
@@ -28,9 +31,11 @@ updated: YYYY-MM-DD
 
 **Context:**
 
-**Suggested Approach:**
+**Known Interfaces / Constraints:**
 
-**Files Likely Affected:**
+**Suggested Direction:**
+
+**Codebase Anchors To Validate:**
 -
 
 **Edge Cases / Gotchas:**

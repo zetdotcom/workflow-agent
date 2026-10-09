@@ -4,20 +4,20 @@ Optionally review implementation plan before coding.
 
 ## Argument Resolution
 
-Resolve change first, then ticket directory within that change. Accept unique change prefixes such as `PYE-1123`. If omitted, present choices at each level. Candidate tickets are in `2.todo/` and contain `PLAN.md` and `PLAN-BRIEF.md`.
+Use the shared resolution rules in `SKILL.md`. Candidate tickets are in `2.todo/` and contain `PLAN.md` and `PLAN-BRIEF.md`.
 
 ## Steps
 
 1. Read `TICKET.md`, `PLAN.md`, and `PLAN-BRIEF.md`.
 2. Explore codebase to verify referenced files, functions, assumptions, and feasibility.
 3. Review:
-   - Completeness against acceptance criteria
+   - Completeness against observable acceptance criteria
    - Feasibility in current codebase
-   - Risk identification
-   - Dependency readiness
-   - Testing adequacy
-   - Deployment safety
-   - Scope control
+   - Vertical phase boundaries and working intermediate states
+   - Public verification seams, failing-before evidence, repository-defined commands, and official sources for version-sensitive external APIs
+   - Direct runtime/smoke coverage for every runnable changed surface
+   - Risk identification and dependency readiness
+   - Deployment safety and scope control
    - Brief accuracy: faithfully summarizes plan, data flow, decisions, risks, and user-visible changes
    - Human readability: understandable without reading detailed plan
 4. Create `REVIEWS.md` from `references/reviews-template.md` if absent, otherwise append to it:

@@ -33,6 +33,10 @@ _What it should look like after. Key user flows/scenarios._
 
 _Hard technical/business/regulatory constraints._
 
+## Domain Language
+
+_Define only project-specific or ambiguous terms needed to understand this change. Use one term per concept._
+
 ## Dependencies
 
 _External systems, teams, order constraints._

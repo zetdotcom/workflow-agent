@@ -4,18 +4,20 @@ Mark ticket done.
 
 ## Argument Resolution
 
-Resolve change first, then present ticket directories in that change's `3.in-progress/`. Accept unique change prefixes such as `PYE-1123`. Ask when omitted or ambiguous.
+Use the shared resolution rules in `SKILL.md`, limited to matching ticket directories in `3.in-progress/`. Ask when omitted or ambiguous.
 
 ## Steps
 
 1. Read `TICKET.md`, `PLAN.md`, `PROGRESS.md`, and `REVIEWS.md` if present. Check readiness:
    - `PROGRESS.md` exists.
    - Every required implementation phase and its completion criteria are complete.
-   - Final cross-phase verification passed.
-   - Acceptance criteria are addressed.
+   - Final cross-phase repository checks passed after the final code change.
+   - Every changed runnable surface has an observed runtime/smoke result, or an explicit limitation is recorded.
+   - Every acceptance criterion, including boundary and failure behavior, is addressed.
    - Latest implementation review is approved. If absent, warn but allow explicit override because review is optional.
    - No unresolved review action items remain.
-2. If not ready, report missing conditions and proceed only after explicit override.
+   - Workflow metadata validator passes before completion.
+2. If not ready, report missing conditions and proceed only after explicit override. Never present an overridden condition as verified.
 3. Append to `PROGRESS.md`:
 
    ```markdown

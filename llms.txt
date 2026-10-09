@@ -26,7 +26,7 @@ Lifecycle: new -> discover -> breakdown -> plan -> implement -> complete, with o
 - `wf complete <change> <ticket>` — verify readiness, move ticket to done
 - `wf status [change] [ticket]` — scoped progress plus exact recommended next action
 
-Ticket-scoped commands resolve change first, then ticket. Unique ID prefix such as `PYE-1123` addresses change `PYE-1123-auth-refactor`. Example: `wf implement PYE-1123 001 phase 3`.
+Ticket-scoped commands accept change IDs, ticket IDs, work item IDs, or slug fragments. They search `.workflow/changes/` file/folder names first, then file contents when needed. Unique ID prefix such as `PYE-1123` addresses change `PYE-1123-auth-refactor`; unique work item ID such as `PYE-11391` can address one ticket directly. Example: `wf implement PYE-1123 001 phase 3`.
 
 ## Optional worktrees
 
@@ -61,10 +61,12 @@ Ticket files (created lazily, never as empty placeholders):
 
 ## Key semantics
 
-- Plans are grounded in actual codebase exploration and split into independently verifiable phases.
+- Tickets default to vertical tracer bullets: the smallest complete behavior through every affected layer that can be deployed and verified independently.
+- Plans are grounded in actual codebase exploration and split into independently verifiable vertical behavior slices.
+- Implementation records failing-before evidence when meaningful, focused automated checks, and direct runtime/smoke evidence for runnable surfaces.
 - Reviews are optional; agent warns before bypassing but permits explicit override.
 - `done` means implementation completed — the PR may still be in review, merging, or receiving feedback. PR-feedback changes may update code and notes while the ticket stays in 4.done/. Explicit reopening moves it back to in-progress with a recorded reason. Out-of-scope follow-up becomes a new ticket.
-- All dates are real YYYY-MM-DD in YAML frontmatter.
+- All dates are real YYYY-MM-DD in YAML frontmatter. A bundled validator checks storage and lifecycle invariants after metadata mutations.
 
 ## Install
 

@@ -4,12 +4,13 @@ Show progress and recommend next action.
 
 ## Argument Resolution
 
-1. No change argument: present existing changes with Question tool. Do not show all-change overview.
-2. Exact change folder match: show that change.
-3. Unique case-insensitive ID/name prefix such as `PYE-1123`: show matching change.
-4. Ticket argument after change: resolve ticket directory only within selected change and show that ticket.
-5. Ambiguous result: ask user to clarify.
-6. Show all changes only when user explicitly asks for `all` or "all changes".
+1. No argument: present existing changes with Question tool. Do not show all-change overview.
+2. One argument: treat it as a possible change ID, ticket ID, work item ID, or slug fragment. Search file and folder names under `.workflow/changes/` first. If name search has no unique match, search file contents with Grep/ripgrep.
+3. If one argument uniquely identifies a change folder, show that change.
+4. If one argument uniquely identifies a ticket directory or ticket file content inside any change, show that ticket and its parent change. Example: `wf status PYE-11391` should locate matching file/folder names before content search.
+5. Two arguments: resolve change first when one argument identifies a change, then resolve ticket within that change. If order is unclear but the pair uniquely identifies one ticket, use it.
+6. Ambiguous result: ask user to clarify with exact matching changes/tickets.
+7. Show all changes only when user explicitly asks for `all` or "all changes".
 
 ## Output
 

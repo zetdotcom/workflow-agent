@@ -1,6 +1,8 @@
 ---
 name: wf
-description: "Unified workflow agent for managing work items from idea to completion. Triggered by: 'wf', 'wf <command>', 'workflow', or any workflow-related intent (e.g., 'plan ticket', 'create change', 'check status', 'breakdown', 'implement'). Handles both single-PR features and multi-ticket epics through a single entry point."
+description: "Routes and executes repository-persisted software delivery workflows from change discovery through ticket breakdown, code-grounded planning, phased implementation, review, completion, and status. Use when the user invokes `wf` or `workflow`, or asks to create, plan, implement, review, complete, or inspect a tracked change or ticket. Supports optional isolated Git worktrees."
+license: MIT
+compatibility: "Requires filesystem tools and a question/choice prompt. Git is required for worktree mode; package managers are optional."
 ---
 
 # Workflow Agent
@@ -44,7 +46,7 @@ Routing behavior:
 
 1. **No arguments / `wf`**: use Question tool to show command menu. Include command names and purposes from table.
 2. **Explicit command** (for example, `wf plan PYE-1123 001`): load its reference and execute it directly.
-3. **Natural language** (for example, "I want to start working on something"): infer command, confirm with user, then load its reference.
+3. **Natural language** (for example, "I want to start working on something"): infer and execute the command when one route clearly fits. Ask only when materially different commands remain plausible.
 4. **Unknown command**: show command menu. Do not guess an unsupported operation.
 
 Read only relevant command reference for current operation. Worktree-modified invocation may additionally read `references/worktree.md` before command reference. If operation changes during conversation, read new command reference before continuing.
@@ -90,8 +92,10 @@ Do not create empty optional files. Commands must read only files relevant to th
 
 - Never guess when change or ticket selection is ambiguous.
 - When user omitted required selection, use Question tool with exact available options.
-- Resolve change before resolving ticket: exact change folder match first, then unique case-insensitive ID/name prefix such as `PYE-1123`.
-- Ticket-scoped commands use `<change> <ticket>` addressing, for example `wf implement PYE-1123 001`.
+- Treat each positional argument as a possible change ID, ticket ID, work item ID, or slug fragment. Do not assume first argument is only a change folder.
+- Resolve arguments by searching file and folder names first under `.workflow/changes/`, then searching file contents with Grep/ripgrep if name search has no unique match.
+- Resolve change before resolving ticket when both are identifiable. Exact folder/file name match wins, then unique case-insensitive ID/name prefix such as `PYE-1123`, then unique content match.
+- Ticket-scoped commands may use `<change> <ticket>` addressing, for example `wf implement PYE-1123 001`, or a unique work item ID such as `wf status PYE-11391` when that ID identifies one change or ticket.
 - Do not resolve a bare ticket number across all changes. If change is omitted, ask user to select change first.
 - Search ticket directories across all four status folders.
 - If `.workflow/` does not exist, suggest `wf new` unless current command is `new`.
@@ -99,18 +103,31 @@ Do not create empty optional files. Commands must read only files relevant to th
 ## Shared Invariants
 
 - `CONTEXT.md` must contain substantive context before breakdown or planning.
-- Tickets should be independently deployable and take 1-3 days unless explicit dependency chain requires otherwise.
+- Prefer the project's established domain language. Record concise definitions in `CONTEXT.md` when terms are ambiguous or project-specific.
+- Tickets should be vertical tracer bullets: the smallest complete, independently deployable and verifiable behavior through every affected layer. Use horizontal tickets only when an indivisible wide refactor cannot remain green as vertical slices.
+- Tickets should take 1-3 days and fit one focused agent session unless an explicit dependency chain requires otherwise.
 - Dependencies must form a directed acyclic graph.
 - Never create breakdown tickets without user confirmation.
 - Plans must be grounded in actual codebase exploration.
 - Keep implementation changes minimal and ticket-scoped.
 - Plan review and implementation review are optional; warn before bypassing relevant review, but permit explicit override.
-- Plans are detailed, comprehensive, and divided into coherent, independently verifiable implementation phases.
+- Plans are detailed, comprehensive, and divided into coherent, independently verifiable behavior slices. Each phase leaves the repository in a working state.
+- Tests target stable public seams and observable behavior. Runtime smoke evidence is required for a changed runnable surface; tests alone are not proof that the surface works.
 - `done` is not immutable. PR feedback changes may update code and ticket notes while ticket remains in `4.done/`.
 - `done -> in-progress` is valid when user explicitly requests reopening; record reason and update dates.
 - Follow-up work beyond original ticket or PR-review scope should become a new ticket.
 - Update `STATUS.md` whenever ticket folders change.
-- Suggest exact `wf <command>` next action after every mutating command and copy that command to the clipboard.
+- Suggest the exact `wf <command>` next action after every mutating command.
+
+## Metadata Feedback Loop
+
+After any command mutates `.workflow/`:
+
+1. Run `bash <skill-root>/scripts/validate-workflow.sh <execution-root>` using the loaded skill directory and active repository/worktree root.
+2. Fix metadata violations caused by the operation and rerun until it passes. Do not alter unrelated pre-existing workflow data silently; report it as a blocker.
+3. Record the exact command and result in the command output and, for implementation work, in `PROGRESS.md`.
+
+The validator proves storage and lifecycle invariants only. It does not prove code behavior, acceptance criteria, or deployment readiness.
 
 ## Date Handling
 
@@ -126,6 +143,5 @@ Use actual current date in `YYYY-MM-DD` format, never placeholder text.
 
 - Keep output concise and actionable.
 - Use actual `wf <command>` syntax in next-step guidance.
-- Whenever suggesting a next `wf` command, use the Bash tool to copy only the exact command to the clipboard. Use `pbcopy` on macOS, `wl-copy` or `xclip -selection clipboard` on Linux, and `clip.exe` on Windows. Detect availability first, treat clipboard failure as non-fatal, and report whether the command was copied.
-- Report files moved or created and verification performed.
-- Surface blockers and unmet prerequisites explicitly.
+- Report files moved or created, observed runtime behavior, and exact verification commands with results.
+- Surface blockers, unverified claims, and unmet prerequisites explicitly.

@@ -2,41 +2,37 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SKILL="$ROOT/skills/wf"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-require_text() {
-  local file="$1"
-  local text="$2"
-  if ! grep -Fq -- "$text" "$file"; then
-    echo "Missing contract in $file: $text" >&2
-    exit 1
-  fi
-}
+name="$(grep -m1 '^name:' "$SKILL/SKILL.md" | cut -d: -f2- | xargs)"
+description="$(grep -m1 '^description:' "$SKILL/SKILL.md" | cut -d: -f2- | xargs)"
 
-require_text "$ROOT/skills/wf/SKILL.md" 'references/worktree.md'
-require_text "$ROOT/skills/wf/SKILL.md" 'selected worktree root as execution root'
-require_text "$ROOT/skills/wf/references/worktree.md" 'git worktree list --porcelain'
-require_text "$ROOT/skills/wf/references/worktree.md" 'Never add `--force`'
-require_text "$ROOT/skills/wf/references/worktree.md" 'npm ci'
-require_text "$ROOT/skills/wf/references/worktree.md" 'pnpm install --frozen-lockfile'
-require_text "$ROOT/skills/wf/references/worktree.md" 'yarn install --immutable'
-require_text "$ROOT/skills/wf/references/worktree.md" 'bun install --frozen-lockfile'
-require_text "$ROOT/README.md" 'wf plan PYE-1123 001 --worktree'
-require_text "$ROOT/llms.txt" '## Optional worktrees'
-require_text "$ROOT/index.html" '<code>--worktree</code>'
-require_text "$ROOT/presentation.html" '<code>--worktree</code>'
+[[ "$name" == "$(basename "$SKILL")" ]]
+[[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]
+[[ -n "$description" && ${#description} -le 1026 ]]
+[[ "$(grep -c '^---$' "$SKILL/SKILL.md")" -ge 2 ]]
 
-while IFS= read -r reference; do
-  [[ -f "$ROOT/skills/wf/$reference" ]] || {
-    echo "Missing referenced file: $reference" >&2
+while IFS= read -r relative; do
+  [[ -f "$SKILL/$relative" ]] || {
+    echo "Missing referenced file: $relative" >&2
     exit 1
   }
-done < <(grep -o 'references/[a-z0-9-]*\.md' "$ROOT/skills/wf/SKILL.md" | sort -u)
+done < <(grep -Eo '(references|scripts)/[a-z0-9./-]+\.(md|sh)' "$SKILL/SKILL.md" | sort -u)
+
+for reference in "$SKILL"/references/*.md; do
+  [[ -s "$reference" ]]
+done
+
+for script in "$SKILL"/scripts/*.sh; do
+  [[ -x "$script" ]]
+  bash -n "$script"
+done
 
 AGENTS_SKILLS_DIR="$TMP/skills" "$ROOT/install.sh" >/dev/null
 [[ -L "$TMP/skills/wf" ]]
 [[ -f "$TMP/skills/wf/SKILL.md" ]]
-[[ -f "$TMP/skills/wf/references/worktree.md" ]]
+[[ -x "$TMP/skills/wf/scripts/validate-workflow.sh" ]]
 
-echo "Static and distribution contracts passed."
+echo "Skill structure and distribution contracts passed."

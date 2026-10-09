@@ -69,9 +69,9 @@ Files appear only when needed:
 
 Breakdown creates only `TICKET.md`. Planning creates both `PLAN.md` and `PLAN-BRIEF.md`. Progress and review files are created lazily when first needed.
 
-Ticket-scoped commands resolve change first, then ticket. A unique change ID prefix such as `PYE-1123` can address `PYE-1123-change-deposit`.
+Ticket-scoped commands accept change IDs, ticket IDs, work item IDs, or slug fragments. They search `.workflow/changes/` file/folder names first, then file contents when needed. A unique change ID prefix such as `PYE-1123` can address `PYE-1123-change-deposit`; a unique work item ID can address its ticket directly, for example `wf status PYE-11391`.
 
-Implementation plans are comprehensive and divided into independently verifiable phases. `PLAN.md` is implementation source of truth. `PLAN-BRIEF.md` gives humans a concise explanation of main changes, architecture/data flow, decisions, risks, rollout, testing, and review questions. Use `wf implement PYE-1123 001 phase 3` to execute or resume one phase.
+Implementation plans are comprehensive and divided into independently verifiable vertical behavior slices. `PLAN.md` is implementation source of truth. `PLAN-BRIEF.md` gives humans a concise explanation of main changes, architecture/data flow, decisions, risks, rollout, testing, and review questions. Implementation records failing-before evidence when meaningful, focused checks, and a direct runtime smoke result for runnable surfaces. Use `wf implement PYE-1123 001 phase 3` to execute or resume one phase.
 
 `done` means implementation completed; PR may be ready for review, ready to merge, merged, or receiving feedback. PR feedback can update code and ticket notes while ticket remains done. Explicit reopening moves it back to in-progress.
 
@@ -124,6 +124,8 @@ AGENTS_SKILLS_DIR=/path/to/skills ./install.sh
 ```text
 skills/wf/
 ├── SKILL.md
+├── scripts/
+│   └── validate-workflow.sh
 └── references/
     ├── new.md
     ├── discover.md
@@ -143,7 +145,7 @@ skills/wf/
     └── reviews-template.md
 ```
 
-`SKILL.md` owns routing and shared workflow contracts. Command references own operation-specific instructions; templates own generated file structure. All references resolve relative to skill directory.
+`SKILL.md` owns routing and shared workflow contracts. Command references own operation-specific instructions; templates own generated file structure. The bundled validator provides a deterministic metadata feedback loop. All references resolve one level from the skill entry point.
 
 ## Compatibility
 
@@ -151,7 +153,7 @@ Works with agents supporting Agent Skills, filesystem tools, question/choice pro
 
 ## Verification
 
-Run `./scripts/verify.sh` for static contracts, development-install exposure, and disposable Git worktree recipes. Agent-only prompt and continuation cases live in `tests/manual-worktree-conformance.md`.
+Run `./scripts/verify.sh` for Agent Skills structure, development-install exposure, workflow metadata validation, and disposable Git worktree recipes. Agent routing and behavioral scenarios live in `tests/manual-skill-conformance.md`; worktree prompt cases remain in `tests/manual-worktree-conformance.md`.
 
 ## License
 
