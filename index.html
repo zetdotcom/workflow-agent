@@ -443,6 +443,7 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
 .canvas-key::before { content: ''; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--crisp-sage); box-shadow: 0 0 8px rgba(118,168,128,0.55); }
 .canvas-key.optional::before { background: var(--burnished-copper); box-shadow: none; }
 .lifecycle-lane { display: grid; grid-template-columns: 1fr 2rem 1fr 2rem 1fr; align-items: center; }
+.lifecycle-lane.deliver-lane { grid-template-columns: 1fr 2rem 1fr 2rem 1fr 2rem 1fr; }
 .lifecycle-lane + .lifecycle-lane { margin-top: 1.5rem; }
 .lane-name {
   grid-column: 1 / -1;
@@ -718,6 +719,7 @@ footer a:hover { color: var(--crisp-text); }
   .lifecycle-canvas { padding: 1.25rem; }
   .canvas-legend { justify-content: flex-start; }
   .lifecycle-lane { grid-template-columns: 1fr; gap: 0.5rem; }
+  .lifecycle-lane.deliver-lane { grid-template-columns: 1fr; }
   .life-node { min-height: 0; }
   .life-arrow { transform: rotate(90deg); }
   .review-branch { grid-template-columns: 1fr; gap: 0.75rem; margin-top: 1rem; }
@@ -768,6 +770,7 @@ footer a:hover { color: var(--crisp-text); }
     <div class="nav-brand"><span>workflow</span>-agent</div>
     <div class="nav-links">
       <a href="presentation.html">Presentation</a>
+      <a href="comparison.html">Comparison</a>
       <a href="#quickstart">Quickstart</a>
       <a href="#status">Status</a>
       <a href="#lifecycle">Lifecycle</a>
@@ -788,6 +791,7 @@ footer a:hover { color: var(--crisp-text); }
       <a class="btn btn-primary" href="#quickstart">Get Started</a>
       <a class="btn btn-secondary" href="presentation.html">View Presentation</a>
       <a class="btn btn-secondary" href="https://github.com/zetdotcom/workflow-agent">View on GitHub</a>
+      <a class="btn btn-secondary" href="comparison.html">Compare with OpenSpec</a>
     </div>
     <div class="hero-visual" role="group" aria-label="Workflow steps from new change through completion">
       <div class="workflow-stage">
@@ -840,10 +844,10 @@ footer a:hover { color: var(--crisp-text); }
           <span class="station-label">6 · Complete</span>
           <div class="ticket-stack">
             <div class="ticket-card back" aria-hidden="true"></div>
-            <div class="ticket-card front"><span class="ticket-id">VERIFIED</span><span class="ticket-summary">Archive verified work and select what comes next.</span></div>
+            <div class="ticket-card front"><span class="ticket-id">VERIFIED</span><span class="ticket-summary">Move verified work to done and select what comes next.</span></div>
           </div>
           <div class="status-tray" aria-hidden="true"></div>
-          <div class="step-tooltip" role="tooltip" id="tip-complete"><strong>wf complete</strong><p>Verify readiness, archive ticket in done, update progress, and recommend next action.</p></div>
+          <div class="step-tooltip" role="tooltip" id="tip-complete"><strong>wf complete</strong><p>Verify readiness, move the ticket to done, update progress, and recommend next action.</p></div>
         </div>
       </div>
     </div>
@@ -992,8 +996,9 @@ wf discover   <span class="c"># interview → complete CONTEXT.md</span></div>
         <div class="step-badge">3</div>
         <div class="step-body">
           <h3>Break it into tickets — <code>wf breakdown</code></h3>
-          <p>Proposes independently deployable tickets (1–3 days each) with goals, risk, and dependencies. Nothing is created until you confirm.</p>
-          <div class="code-block">wf breakdown  <span class="c"># propose tickets, create after confirmation</span></div>
+          <p>Proposes independently deployable tickets (1–3 days each) with goals, risk, and dependencies. Nothing is created until you confirm. For behavior-heavy or risky tickets, use <code>wf specify</code> afterward to confirm scenarios just in time.</p>
+          <div class="code-block">wf breakdown  <span class="c"># propose tickets, create after confirmation</span>
+wf specify PYE-1123 001  <span class="c"># optional ticket behavior specification</span></div>
         </div>
       </div>
 
@@ -1026,12 +1031,22 @@ wf impl-review PYE-1123 001   <span class="c"># optional code review vs plan</sp
 wf status PYE-1123</div>
         </div>
       </div>
+
+      <div class="step">
+        <div class="step-badge">7</div>
+        <div class="step-body">
+          <h3>Preserve the why — <code>wf archive</code></h3>
+          <p>Archive distills any terminal change into one dated summary of its outcome, lasting decisions, invariants, limits, evidence, and references. You preview the summary and removals before confirming.</p>
+          <div class="code-block">wf archive PYE-1123
+wf status archived PYE-1123</div>
+        </div>
+      </div>
     </div>
   </section>
 
   <section id="lifecycle">
     <h2>The Lifecycle</h2>
-    <p class="lead">One entry point, nine commands. Reviews are optional gates — use them for risky work, skip them for small fixes.</p>
+    <p class="lead">One entry point, ten commands. Ticket specification and reviews are optional — use them where behavioral agreement or risk warrants the extra gate.</p>
 
     <div class="lifecycle-canvas canopy" role="img" aria-label="workflow-agent lifecycle from new change through completion, including optional reviews and status available throughout">
       <div class="canvas-legend" aria-hidden="true">
@@ -1060,8 +1075,14 @@ wf status PYE-1123</div>
         </div>
       </div>
 
-      <div class="lifecycle-lane">
+      <div class="lifecycle-lane deliver-lane">
         <div class="lane-name">Deliver each ticket</div>
+        <div class="life-node">
+          <h3>wf specify</h3>
+          <p>Confirm user stories, scenarios, and protected behavior.</p>
+          <span class="artifact">SPEC.md · optional</span>
+        </div>
+        <div class="life-arrow" aria-hidden="true">→</div>
         <div class="life-node">
           <h3>wf plan</h3>
           <p>Explore code and design verifiable phases.</p>
@@ -1076,7 +1097,7 @@ wf status PYE-1123</div>
         <div class="life-arrow" aria-hidden="true">→</div>
         <div class="life-node">
           <h3>wf complete</h3>
-          <p>Verify readiness and archive in done.</p>
+          <p>Verify readiness and move the ticket to done.</p>
           <span class="artifact">4.done/ · STATUS.md</span>
         </div>
       </div>
@@ -1115,6 +1136,7 @@ wf status PYE-1123</div>
                           <li><span class="folder-name ticket-folder">001-token-validation/</span>
                             <ul>
                               <li><span class="file-name">TICKET.md</span></li>
+                              <li><span class="file-name">SPEC.md</span> <span class="tree-note">optional behavior</span></li>
                               <li><span class="file-name">PLAN.md</span></li>
                               <li><span class="file-name">PLAN-BRIEF.md</span></li>
                             </ul>
@@ -1149,6 +1171,10 @@ wf status PYE-1123</div>
             <div class="creation-effect">Creates each <code>NNN-ticket/</code> directory in <code>1.draft/</code> with its stable <code>TICKET.md</code>.</div>
           </div>
           <div class="creation-row">
+            <code class="creation-command">wf specify</code>
+            <div class="creation-effect">Optionally creates or updates a ticket's confirmed <code>SPEC.md</code> without changing lifecycle state.</div>
+          </div>
+          <div class="creation-row">
             <code class="creation-command">wf plan</code>
             <div class="creation-effect">Adds detailed <code>PLAN.md</code> and human-readable <code>PLAN-BRIEF.md</code>, then moves ticket to <code>2.todo/</code>.</div>
           </div>
@@ -1163,6 +1189,10 @@ wf status PYE-1123</div>
           <div class="creation-row">
             <code class="creation-command">wf complete</code>
             <div class="creation-effect">Adds completion record, moves whole ticket directory to <code>4.done/</code>, and updates <code>STATUS.md</code>.</div>
+          </div>
+          <div class="creation-row">
+            <code class="creation-command">wf archive</code>
+            <div class="creation-effect">Creates one dated <code>SUMMARY.md</code> after preview and confirmation, then removes the active change workspace.</div>
           </div>
           <div class="creation-row">
             <code class="creation-command">wf status</code>
@@ -1182,28 +1212,33 @@ wf status PYE-1123</div>
       <div class="adv-body">
         <p>Each ticket is a directory that moves between numbered status folders. No status field can drift from reality — the location <em>is</em> the status. <code>STATUS.md</code> is a derived summary and gets auto-repaired if it drifts.</p>
         <div class="code-block">.workflow/
-└── changes/
-    └── PYE-1123-auth-refactor/
-        ├── CONTEXT.md          <span class="c"># change definition</span>
-        ├── STATUS.md           <span class="c"># derived progress summary</span>
-        ├── 1.draft/            <span class="c"># new / unplanned</span>
-        │   └── 001-remove-old-deposit/
-        │       └── TICKET.md
-        ├── 2.todo/             <span class="c"># planned, ready to implement</span>
-        ├── 3.in-progress/      <span class="c"># being implemented</span>
-        └── 4.done/             <span class="c"># implementation complete</span></div>
+├── changes/
+│   └── PYE-1123-auth-refactor/
+│       ├── CONTEXT.md          <span class="c"># change definition</span>
+│       ├── STATUS.md           <span class="c"># derived progress summary</span>
+│       ├── 1.draft/            <span class="c"># new / unplanned</span>
+│       │   └── 001-remove-old-deposit/
+│       │       ├── TICKET.md
+│       │       └── SPEC.md             <span class="c"># optional confirmed behavior</span>
+│       ├── 2.todo/             <span class="c"># planned, ready to implement</span>
+│       ├── 3.in-progress/      <span class="c"># being implemented</span>
+│       └── 4.done/             <span class="c"># implementation complete</span>
+└── archive/
+    └── 2026-12-05-PYE-1100-earlier-change/
+        └── SUMMARY.md          <span class="c"># durable outcome and rationale</span></div>
       </div>
     </details>
 
     <details class="adv ceramic">
       <summary>Ticket files — created only when needed</summary>
       <div class="adv-body">
-        <p>Breakdown creates only <code>TICKET.md</code>. Planning adds <code>PLAN.md</code> and <code>PLAN-BRIEF.md</code>. Progress and review files appear lazily. Empty placeholder files are never created.</p>
+        <p>Breakdown creates only <code>TICKET.md</code>. <code>wf specify</code> optionally adds a confirmed <code>SPEC.md</code>. Planning adds <code>PLAN.md</code> and <code>PLAN-BRIEF.md</code>. Progress and review files appear lazily. Empty placeholder files are never created.</p>
         <ul class="file-list">
-          <li><code>TICKET.md</code> Goal, scope, acceptance criteria, risk, dependencies, technical context</li>
-          <li><code>PLAN.md</code> Detailed, phased implementation plan — the implementation source of truth</li>
+          <li><code>TICKET.md</code> Goal, scope, delivery criteria, risk, dependencies, technical context</li>
+          <li><code>SPEC.md</code> Optional user stories, observable scenarios, protected behaviors, exclusions</li>
+          <li><code>PLAN.md</code> Detailed phases and specification-to-verification mapping — the implementation source of truth</li>
           <li><code>PLAN-BRIEF.md</code> Concise human summary: main changes, data flow, decisions, risks, review questions</li>
-          <li><code>PROGRESS.md</code> Phase results, verification, deviations, PR-feedback work</li>
+          <li><code>PROGRESS.md</code> Phase results, verification evidence, deviations, PR-feedback work</li>
           <li><code>REVIEWS.md</code> Dated plan and implementation reviews</li>
         </ul>
       </div>
@@ -1241,11 +1276,13 @@ wf status PYE-1123 001</div>
           <li><code>wf new</code> Create a change and its workflow structure</li>
           <li><code>wf discover</code> Interview to turn raw context into a structured change definition</li>
           <li><code>wf breakdown</code> Propose and create independently deployable tickets</li>
+          <li><code>wf specify</code> <span class="optional-tag">optional</span> Draft and confirm ticket-level behavior</li>
           <li><code>wf plan</code> Explore code, write phased PLAN.md + PLAN-BRIEF.md</li>
           <li><code>wf plan-review</code> <span class="optional-tag">optional</span> Review a plan before coding</li>
           <li><code>wf implement</code> Execute and verify one implementation phase at a time</li>
-          <li><code>wf impl-review</code> <span class="optional-tag">optional</span> Review code against plan and acceptance criteria</li>
+          <li><code>wf impl-review</code> <span class="optional-tag">optional</span> Review code against plan, acceptance criteria, and specification</li>
           <li><code>wf complete</code> Verify readiness, move ticket to done</li>
+          <li><code>wf archive</code> Preview and distill a change into a dated historical summary</li>
           <li><code>wf status</code> Scoped progress and exact next action</li>
         </ul>
       </div>

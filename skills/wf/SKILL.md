@@ -1,6 +1,6 @@
 ---
 name: wf
-description: "Routes and executes repository-persisted software delivery workflows from change discovery through ticket breakdown, code-grounded planning, phased implementation, review, completion, and status. Use when the user invokes `wf` or `workflow`, or asks to create, plan, implement, review, complete, or inspect a tracked change or ticket. Supports optional isolated Git worktrees."
+description: "Routes and executes repository-persisted software delivery workflows from change discovery through ticket specification, code-grounded planning, phased implementation, review, completion, archival, and status. Use when the user invokes `wf` or `workflow`, or asks to create, specify, plan, implement, review, complete, archive, or inspect a tracked change or ticket. Supports optional isolated Git worktrees."
 license: MIT
 compatibility: "Requires filesystem tools and a question/choice prompt. Git is required for worktree mode; package managers are optional."
 ---
@@ -35,11 +35,13 @@ Without explicit or natural-language worktree intent, skip setup and preserve ex
 | `new` | Start a change | `references/new.md` |
 | `discover` | Flesh out context | `references/discover.md` |
 | `breakdown` | Split change into tickets | `references/breakdown.md` |
+| `specify` | Confirm ticket behavior and scenarios | `references/specify.md` |
 | `plan` | Create ticket implementation plan | `references/plan.md` |
 | `plan-review` | Optionally review plan | `references/plan-review.md` |
 | `implement` | Execute implementation plan | `references/implement.md` |
 | `impl-review` | Optionally review code changes | `references/impl-review.md` |
 | `complete` | Mark ticket done | `references/complete.md` |
+| `archive` | Distill and archive a change | `references/archive.md` |
 | `status` | Show progress and next actions | `references/status.md` |
 
 Routing behavior:
@@ -53,7 +55,7 @@ Read only relevant command reference for current operation. Worktree-modified in
 
 ## Storage Model
 
-All workflow data lives in `.workflow/changes/<slug>/`:
+Active workflow data lives in `.workflow/changes/<slug>/`. Archived changes become one distilled record under `.workflow/archive/YYYY-MM-DD-<slug>/`:
 
 ```text
 .workflow/
@@ -64,27 +66,34 @@ All workflow data lives in `.workflow/changes/<slug>/`:
       1.draft/
         001-ticket-slug/
           TICKET.md
+          SPEC.md
       2.todo/
       3.in-progress/
       4.done/
+  archive/
+    2026-12-05-PROJ-122-earlier-change/
+      SUMMARY.md
 ```
 
-Folder meanings:
+Active folder meanings:
 
 - `1.draft/`: new or unplanned tickets
 - `2.todo/`: planned tickets ready for implementation
 - `3.in-progress/`: tickets currently being implemented or updated
 - `4.done/`: implementation completed; PR may be ready for review, ready to merge, merged, or receiving follow-up review changes
 
-Each ticket is a directory named `NNN-slug`. Move whole ticket directories between numbered folders as status changes. Directory location is source of truth for ticket lifecycle status. `STATUS.md` is derived progress summary.
+Each active ticket is a directory named with a three-digit number, optional letter suffix, and optional slug, such as `001-ticket-slug` or `005a`. Move whole ticket directories between numbered folders as status changes. Directory location is source of truth for ticket lifecycle status. `STATUS.md` is derived progress summary.
 
 Ticket directory files:
 
-- `TICKET.md`: stable goal, scope, acceptance criteria, testing requirements, risk, dependencies, and technical context; created during breakdown
+- `TICKET.md`: stable goal, delivery boundary, acceptance criteria, testing requirements, risk, dependencies, and technical context; created during breakdown
+- `SPEC.md`: optional confirmed user stories, observable scenarios, protected behaviors, and exclusions; created or updated by specification
 - `PLAN.md`: detailed, comprehensive, phased implementation plan; created during planning
 - `PLAN-BRIEF.md`: concise human-readable explanation of planned changes and data flow; created during planning
 - `PROGRESS.md`: phase results, verification, deviations, reopening notes, and PR-feedback work; created when first needed
 - `REVIEWS.md`: dated plan and implementation reviews; created when first review runs
+
+An archived change contains only `SUMMARY.md`: outcome, current behavior and invariants, lasting decisions, stable codebase map, operational changes, limits, verification, and references. The physical directory date is the archive date; the original slug remains the logical change identity.
 
 Do not create empty optional files. Commands must read only files relevant to their operation plus `TICKET.md`.
 
@@ -99,6 +108,9 @@ Do not create empty optional files. Commands must read only files relevant to th
 - Do not resolve a bare ticket number across all changes. If change is omitted, ask user to select change first.
 - Search ticket directories across all four status folders.
 - If `.workflow/` does not exist, suggest `wf new` unless current command is `new`.
+- Lifecycle commands other than `archive` and archive-aware `status` resolve active data under `.workflow/changes/` only.
+- `archive` resolves an active change, while explicit archived status lookup resolves `.workflow/archive/` by physical directory name or logical `change` identity from `SUMMARY.md`.
+- Active matches win for ordinary `wf status <identifier>` lookup; archived records are considered only when no active match exists. `wf status archived` explicitly lists archive records.
 
 ## Shared Invariants
 
@@ -108,6 +120,7 @@ Do not create empty optional files. Commands must read only files relevant to th
 - Tickets should take 1-3 days and fit one focused agent session unless an explicit dependency chain requires otherwise.
 - Dependencies must form a directed acyclic graph.
 - Never create breakdown tickets without user confirmation.
+- Ticket specifications are optional and confirmed just in time. When `SPEC.md` exists, it is the source of truth for detailed observable behavior and every scenario and protected behavior must map to verification.
 - Plans must be grounded in actual codebase exploration.
 - Keep implementation changes minimal and ticket-scoped.
 - Plan review and implementation review are optional; warn before bypassing relevant review, but permit explicit override.
@@ -118,6 +131,8 @@ Do not create empty optional files. Commands must read only files relevant to th
 - Follow-up work beyond original ticket or PR-review scope should become a new ticket.
 - Update `STATUS.md` whenever ticket folders change.
 - Suggest the exact `wf <command>` next action after every mutating command.
+- Archiving is terminal for workflow metadata but does not imply successful delivery. Every archive records one outcome: `completed`, `cancelled`, `superseded`, or `closed-incomplete`.
+- Archive summaries are historical rationale, not canonical current operational documentation. Link current runbooks and docs rather than duplicating instructions that can drift.
 
 ## Metadata Feedback Loop
 
@@ -138,6 +153,8 @@ Use actual current date in `YYYY-MM-DD` format, never placeholder text.
 - `STATUS.md`: `updated` in YAML frontmatter
 - Update `updated` whenever file content changes
 - Ticket latest modification is newest `updated` value among files in its directory
+- `SUMMARY.md`: `created`, `updated`, and `archived` in YAML frontmatter; `updated` and `archived` equal the actual archive date when created
+- Archive directory date must equal `SUMMARY.md` `archived`; `change` must equal the original active change slug
 
 ## Output Rules
 

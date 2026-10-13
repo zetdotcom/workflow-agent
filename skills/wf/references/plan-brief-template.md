@@ -29,7 +29,7 @@ Describe how data, control, and user actions move through affected system. Add c
 
 ## Important Decisions
 
-- Decision, rationale, and meaningful alternative considered
+- Current decision, rationale, meaningful alternative considered, and relevant archived rationale when applicable
 
 ## User-Visible Changes
 

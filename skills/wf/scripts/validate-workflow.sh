@@ -9,9 +9,13 @@ fi
 
 root="$(cd "$root" && pwd)"
 changes_root="$root/.workflow/changes"
+archive_root="$root/.workflow/archive"
 errors=0
 change_count=0
 ticket_count=0
+archive_count=0
+active_change_names=$'\n'
+archived_change_names=$'\n'
 
 error() {
   echo "ERROR: $1" >&2
@@ -56,6 +60,34 @@ validate_document() {
   fi
 }
 
+validate_archive_summary() {
+  local file="$1"
+  local expected_archived="$2"
+  local expected_change="$3"
+  local line change="" archived="" outcome="" line_number=0
+
+  validate_document "$file" yes
+  [[ -f "$file" ]] || return
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line_number=$((line_number + 1))
+    (( line_number == 1 )) && continue
+    [[ "$line" == "---" ]] && break
+    case "$line" in
+      change:\ *) change="${line#change: }" ;;
+      archived:\ *) archived="${line#archived: }" ;;
+      outcome:\ *) outcome="${line#outcome: }" ;;
+    esac
+  done < "$file"
+
+  [[ "$change" == "$expected_change" ]] || error "archive change identity does not match directory: ${file#"$root"/}"
+  [[ "$archived" == "$expected_archived" ]] || error "archive date does not match directory: ${file#"$root"/}"
+  case "$outcome" in
+    completed|cancelled|superseded|closed-incomplete) ;;
+    *) error "invalid or missing archive outcome: ${file#"$root"/}" ;;
+  esac
+}
+
 if [[ ! -d "$changes_root" ]]; then
   echo "ERROR: missing workflow root: .workflow/changes" >&2
   exit 1
@@ -69,6 +101,8 @@ for change in "$changes_root"/*; do
   fi
 
   change_count=$((change_count + 1))
+  change_name="$(basename "$change")"
+  active_change_names+="$change_name"$'\n'
   seen_ticket_names=$'\n'
   validate_document "$change/CONTEXT.md" yes
   validate_document "$change/STATUS.md" no
@@ -89,7 +123,7 @@ for change in "$changes_root"/*; do
 
       ticket_count=$((ticket_count + 1))
       ticket_name="$(basename "$ticket")"
-      if [[ ! "$ticket_name" =~ ^[0-9]{3}-[a-z0-9][a-z0-9._-]*$ ]]; then
+      if [[ ! "$ticket_name" =~ ^[0-9]{3}[a-z]?(-[a-z0-9][a-z0-9._-]*)?$ ]]; then
         error "invalid ticket directory name: ${ticket#"$root"/}"
       fi
 
@@ -123,9 +157,46 @@ for change in "$changes_root"/*; do
   done
 done
 
+if [[ -e "$archive_root" && ! -d "$archive_root" ]]; then
+  error "workflow archive is not a directory: .workflow/archive"
+elif [[ -d "$archive_root" ]]; then
+  for archive in "$archive_root"/*; do
+    [[ -e "$archive" ]] || continue
+    if [[ ! -d "$archive" ]]; then
+      error "unexpected file under .workflow/archive: ${archive#"$root"/}"
+      continue
+    fi
+
+    archive_name="$(basename "$archive")"
+    if [[ "$archive_name" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2})-([A-Za-z0-9][A-Za-z0-9._-]*)$ ]]; then
+      archive_date="${BASH_REMATCH[1]}"
+      archived_change_name="${BASH_REMATCH[2]}"
+    else
+      error "invalid archive directory name: ${archive#"$root"/}"
+      continue
+    fi
+
+    archive_count=$((archive_count + 1))
+    if [[ "$active_change_names" == *$'\n'"$archived_change_name"$'\n'* ]]; then
+      error "change exists in active and archive storage: $archived_change_name"
+    fi
+    if [[ "$archived_change_names" == *$'\n'"$archived_change_name"$'\n'* ]]; then
+      error "duplicate archived change identity: $archived_change_name"
+    else
+      archived_change_names+="$archived_change_name"$'\n'
+    fi
+
+    validate_archive_summary "$archive/SUMMARY.md" "$archive_date" "$archived_change_name"
+    for archive_entry in "$archive"/*; do
+      [[ -e "$archive_entry" ]] || continue
+      [[ "$(basename "$archive_entry")" == "SUMMARY.md" && -f "$archive_entry" ]] || error "unexpected archive entry: ${archive_entry#"$root"/}"
+    done
+  done
+fi
+
 if (( errors > 0 )); then
   echo "Workflow metadata invalid: $errors error(s)." >&2
   exit 1
 fi
 
-printf 'Workflow metadata valid: %d change(s), %d ticket(s).\n' "$change_count" "$ticket_count"
+printf 'Workflow metadata valid: %d active change(s), %d ticket(s), %d archived change(s).\n' "$change_count" "$ticket_count" "$archive_count"

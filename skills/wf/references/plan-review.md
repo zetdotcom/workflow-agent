@@ -8,13 +8,14 @@ Use the shared resolution rules in `SKILL.md`. Candidate tickets are in `2.todo/
 
 ## Steps
 
-1. Read `TICKET.md`, `PLAN.md`, and `PLAN-BRIEF.md`.
+1. Read `TICKET.md`, optional `SPEC.md`, `PLAN.md`, and `PLAN-BRIEF.md`.
 2. Explore codebase to verify referenced files, functions, assumptions, and feasibility.
 3. Review:
-   - Completeness against observable acceptance criteria
+   - Completeness against observable acceptance criteria and, when `SPEC.md` exists, every scenario and protected behavior
    - Feasibility in current codebase
    - Vertical phase boundaries and working intermediate states
    - Public verification seams, failing-before evidence, repository-defined commands, and official sources for version-sensitive external APIs
+   - Specification traceability: each scenario and protected behavior maps to planned evidence at a stable seam without duplicating or reinterpreting the behavior
    - Direct runtime/smoke coverage for every runnable changed surface
    - Risk identification and dependency readiness
    - Deployment safety and scope control
@@ -47,3 +48,4 @@ Use the shared resolution rules in `SKILL.md`. Candidate tickets are in `2.todo/
 - Keep findings concise and actionable.
 - A blocked verdict prevents implementation unless user explicitly overrides.
 - Reject material disagreement between detailed plan and brief.
+- If the plan requires a material behavior change to `SPEC.md`, record the issue as blocked and suggest `wf specify <change> <ticket>`; do not approve an unconfirmed reinterpretation.

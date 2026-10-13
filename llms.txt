@@ -1,6 +1,6 @@
 # workflow-agent
 
-> Filesystem-based ticket lifecycle skill for AI coding agents. One `wf` skill manages work from idea to completed implementation — context, tickets, phased plans, reviews, and progress persist as markdown files in the repository, so work resumes across sessions. No servers or databases.
+> Filesystem-based ticket lifecycle skill for AI coding agents. One `wf` skill manages work from idea through implementation and distills terminal changes into dated historical summaries, so active work and durable rationale persist as markdown in the repository. No servers or databases.
 
 Site: https://michalzet.com/workflow-agent
 Repository: https://github.com/zetdotcom/workflow-agent
@@ -11,7 +11,7 @@ License: MIT
 
 workflow-agent is an Agent Skill (installed via `npx skills add zetdotcom/workflow-agent --skill wf`). It gives an AI coding agent structured project management: single-PR features and multi-ticket epics through one `wf` entry point.
 
-Lifecycle: new -> discover -> breakdown -> plan -> implement -> complete, with optional plan-review and impl-review gates.
+Lifecycle: new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> archive, with optional ticket specification, plan-review, and impl-review steps. Any change may be archived with an explicit terminal outcome.
 
 ## Commands
 
@@ -19,12 +19,14 @@ Lifecycle: new -> discover -> breakdown -> plan -> implement -> complete, with o
 - `wf new` — create a change and its workflow structure
 - `wf discover` — interview to turn raw notes into a structured CONTEXT.md
 - `wf breakdown` — propose and create independently deployable tickets (1-3 days each, user-confirmed, dependencies form a DAG)
+- `wf specify <change> <ticket>` — optionally draft and confirm ticket-level user stories, observable scenarios, protected behaviors, and exclusions in SPEC.md
 - `wf plan <change> <ticket>` — explore codebase, write detailed phased PLAN.md plus concise human-readable PLAN-BRIEF.md
 - `wf plan-review <change> <ticket>` — optional plan review before coding
 - `wf implement <change> <ticket> [phase N]` — execute and verify one implementation phase at a time; results logged in PROGRESS.md
 - `wf impl-review <change> <ticket>` — optional review of code against plan and acceptance criteria
 - `wf complete <change> <ticket>` — verify readiness, move ticket to done
-- `wf status [change] [ticket]` — scoped progress plus exact recommended next action
+- `wf archive <change>` — preview and synthesize one dated SUMMARY.md, then remove the active workspace after explicit confirmation
+- `wf status [change] [ticket]` — scoped active progress, or archived outcome lookup when explicitly requested or no active match exists
 
 Ticket-scoped commands accept change IDs, ticket IDs, work item IDs, or slug fragments. They search `.workflow/changes/` file/folder names first, then file contents when needed. Unique ID prefix such as `PYE-1123` addresses change `PYE-1123-auth-refactor`; unique work item ID such as `PYE-11391` can address one ticket directly. Example: `wf implement PYE-1123 001 phase 3`.
 
@@ -36,32 +38,46 @@ After selection, optional dependency installation detects root lockfiles. Comman
 
 ## Storage model
 
-All data lives in `.workflow/changes/<slug>/` in the managed project:
+Active data and distilled archive records live under `.workflow/`:
 
 ```
-.workflow/changes/PROJ-123-auth-refactor/
-├── CONTEXT.md          # change definition
-├── STATUS.md           # derived progress summary
-├── 1.draft/            # new / unplanned tickets
-│   └── 001-ticket-slug/
-│       └── TICKET.md
-├── 2.todo/             # planned, ready to implement
-├── 3.in-progress/      # being implemented
-└── 4.done/             # implementation complete
+.workflow/
+├── changes/PROJ-123-auth-refactor/
+│   ├── CONTEXT.md          # active change definition
+│   ├── STATUS.md           # active derived progress summary
+│   ├── 1.draft/            # new / unplanned tickets
+│   │   └── 001-ticket-slug/
+│   │       ├── TICKET.md
+│   │       └── SPEC.md          # optional confirmed ticket behavior
+│   ├── 2.todo/             # planned, ready to implement
+│   ├── 3.in-progress/      # being implemented
+│   └── 4.done/             # implementation complete
+└── archive/2026-12-05-PROJ-122-earlier-change/
+    └── SUMMARY.md          # outcome, rationale, invariants, code map, limits, evidence, references
 ```
 
 Each ticket is a directory that moves whole between numbered status folders. Directory location is the source of truth; STATUS.md is derived and auto-repaired if drifted.
 
 Ticket files (created lazily, never as empty placeholders):
-- TICKET.md — goal, scope, acceptance criteria, risk, dependencies, technical context (created by breakdown)
-- PLAN.md — detailed phased implementation plan; implementation source of truth (created by plan)
+- TICKET.md — goal, scope, concise delivery criteria, risk, dependencies, technical context (created by breakdown)
+- SPEC.md — optional confirmed user stories, GIVEN/WHEN/THEN scenarios, protected behaviors, and exclusions (created or updated by specify)
+- PLAN.md — detailed phased implementation plan and specification verification mapping; implementation source of truth (created by plan)
 - PLAN-BRIEF.md — concise human summary: changes, data flow, decisions, risks, review questions (created by plan)
-- PROGRESS.md — phase results, verification, deviations, PR-feedback work
+- PROGRESS.md — phase results, verification evidence, deviations, PR-feedback work
 - REVIEWS.md — dated plan and implementation reviews
+
+Archive semantics:
+- Directory names use `YYYY-MM-DD-<original-change-slug>` where the date is the actual archive date.
+- Outcomes are `completed`, `cancelled`, `superseded`, or `closed-incomplete`; incomplete work remains explicit.
+- The complete summary and deletion manifest are previewed before confirmation. Cancellation performs no mutation.
+- Archive summaries contain actual durable results, not copied raw context, detailed plans, ticket bookkeeping, reviews, or chronological logs.
+- Planning searches only relevant summaries after codebase exploration, using verified component/path/symbol/domain terms. Current runbooks remain canonical for operations.
+- `wf status archived` lists records; `wf status archived <change>` reads one. Ordinary status considers archives only after no active match.
 
 ## Key semantics
 
 - Tickets default to vertical tracer bullets: the smallest complete behavior through every affected layer that can be deployed and verified independently.
+- Specifications are optional, ticket-scoped, and confirmed just in time. When SPEC.md exists, every scenario and protected behavior maps to planned verification, observed implementation evidence, and completion coverage. Material behavior changes return through `wf specify` for confirmation.
 - Plans are grounded in actual codebase exploration and split into independently verifiable vertical behavior slices.
 - Implementation records failing-before evidence when meaningful, focused automated checks, and direct runtime/smoke evidence for runnable surfaces.
 - Reviews are optional; agent warns before bypassing but permits explicit override.

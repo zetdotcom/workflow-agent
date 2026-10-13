@@ -4,13 +4,12 @@ Show progress and recommend next action.
 
 ## Argument Resolution
 
-1. No argument: present existing changes with Question tool. Do not show all-change overview.
-2. One argument: treat it as a possible change ID, ticket ID, work item ID, or slug fragment. Search file and folder names under `.workflow/changes/` first. If name search has no unique match, search file contents with Grep/ripgrep.
-3. If one argument uniquely identifies a change folder, show that change.
-4. If one argument uniquely identifies a ticket directory or ticket file content inside any change, show that ticket and its parent change. Example: `wf status PYE-11391` should locate matching file/folder names before content search.
-5. Two arguments: resolve change first when one argument identifies a change, then resolve ticket within that change. If order is unclear but the pair uniquely identifies one ticket, use it.
-6. Ambiguous result: ask user to clarify with exact matching changes/tickets.
-7. Show all changes only when user explicitly asks for `all` or "all changes".
+1. No argument: present active changes under `.workflow/changes/` with Question tool. Do not show all-change or archive overview.
+2. `all`: show all active changes only.
+3. `archived`: list archived records. `archived <identifier>` resolves only archive records by exact dated directory name, exact logical `change` value in `SUMMARY.md`, then unique case-insensitive ID/name prefix or content match.
+4. One ordinary argument: search active file and folder names first, then active file contents. If one active change or ticket matches, show it. Only when no active match exists, search archive directory names and `SUMMARY.md` logical `change` values, then archive contents.
+5. Two ordinary arguments: resolve active change first when one argument identifies a change, then resolve ticket within that change. If order is unclear but the pair uniquely identifies one active ticket, use it.
+6. Ambiguous result: ask user to clarify with exact matching active changes, tickets, or archive records. Never merge active and archived state.
 
 ## Output
 
@@ -22,6 +21,24 @@ Workflow Status
 PROJ-123-auth-refactor  3/10 done  (1 in progress)
 PROJ-456-add-metrics    5/5 done   complete
 PROJ-789-new-feature    CONTEXT only, no tickets yet
+```
+
+Archived records:
+
+```text
+Workflow Archive
+----------------
+2026-12-05  PROJ-123-auth-refactor  completed
+2026-11-18  PROJ-456-old-checkout    superseded
+```
+
+Single archived change:
+
+```text
+PROJ-123-auth-refactor
+Archived: 2026-12-05
+Outcome: completed
+Summary: .workflow/archive/2026-12-05-PROJ-123-auth-refactor/SUMMARY.md
 ```
 
 Single change:
@@ -60,10 +77,13 @@ Next: complete implementation, then run `wf impl-review PYE-1123 004`
 
 List ticket directories in all status folders and verify `STATUS.md` matches folder source of truth. Read each `TICKET.md` for title/risk/dependencies and derive latest activity from newest `updated` value across files in ticket directory. If drift exists, repair only `STATUS.md`, update its actual `updated` date, and report corrections.
 
+For an archived record, validate the dated directory and `SUMMARY.md` identity while reading it. Do not reconcile or mutate immutable archive state; report metadata drift and suggest running the validator.
+
 ## Rules
 
-- Read-only except `STATUS.md` reconciliation.
-- Always show recommended next action.
-- Treat context-only changes with no tickets as normal early state.
+- Read-only except active `STATUS.md` reconciliation.
+- Always show recommended next action for active state; archived records instead show outcome and summary path.
+- For an active change with every ticket in `4.done/`, recommend `wf archive <change>` rather than leaving the completed workspace indefinitely.
+- Treat context-only active changes with no tickets as normal early state.
 - Keep output concise.
-- Never show all changes unless explicitly requested.
+- Never show all active changes or archived records unless explicitly requested.

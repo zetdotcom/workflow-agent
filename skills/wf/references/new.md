@@ -8,7 +8,7 @@ Create a new change folder.
    - Ticket number, Jira-style (for example, `PROJ-123`)
    - Short description for slug suffix (for example, `auth-refactor`)
    - Combine as `PROJ-123-auth-refactor`
-2. Bootstrap `.workflow/changes/` if it does not exist.
+2. Bootstrap `.workflow/changes/` if it does not exist. Before creation, search active directory names and archived `SUMMARY.md` `change` values. Stop if the logical slug or ticket ID already exists in either location; never create a second active identity for an archived change.
 3. Create:
 
    ```text
@@ -45,4 +45,4 @@ Create a new change folder.
 
 - Do not create tickets; `wf breakdown` owns ticket creation.
 - Keep bootstrap lightweight.
-- If target slug exists, stop and ask whether user wants existing change instead. Do not overwrite it.
+- If target slug exists as an active directory or archived logical change, stop and offer the existing active status or archived summary. Do not overwrite or reuse it.

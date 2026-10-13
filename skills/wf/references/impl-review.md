@@ -8,9 +8,9 @@ Use the shared resolution rules in `SKILL.md`. Include tickets in `3.in-progress
 
 ## Steps
 
-1. Read `TICKET.md`, `PLAN.md`, `PLAN-BRIEF.md`, `PROGRESS.md`, and `REVIEWS.md` if present.
+1. Read `TICKET.md`, optional `SPEC.md`, `PLAN.md`, `PLAN-BRIEF.md`, `PROGRESS.md`, and `REVIEWS.md` if present.
 2. Pin review scope from `PROGRESS.md` and the relevant Git diff. Do not assume unrelated worktree changes belong to ticket.
-3. Review behavior tests first: confirm they exercise public seams, would fail for a plausible regression, and cover required boundaries rather than implementation details.
+3. Review behavior tests first: confirm they exercise public seams, would fail for a plausible regression, cover required boundaries rather than implementation details, and provide evidence for every scenario and protected behavior in `SPEC.md` when present.
 4. Run relevant focused checks, then the full test/typecheck/lint/build commands required by the plan. Exercise every changed runnable surface directly. If a check or runtime is unavailable, state the exact limitation.
 5. Review changed code for:
    - Correctness and completeness
@@ -32,9 +32,9 @@ Use the shared resolution rules in `SKILL.md`. Include tickets in `3.in-progress
    **Findings:**
    - ...
 
-   **Acceptance Criteria Check:**
-   - [x] criterion - met
-   - [ ] criterion - not met because...
+   **Acceptance And Specification Check:**
+   - [x] criterion, scenario, or protected behavior - met with evidence
+   - [ ] criterion, scenario, or protected behavior - not met because...
 
    **Action items:**
    - Critical | required | optional - finding, evidence, and concrete remedy
@@ -49,3 +49,4 @@ Use the shared resolution rules in `SKILL.md`. Include tickets in `3.in-progress
 - Findings first, ordered by severity. Each required finding names evidence, user impact, and a concrete remedy; avoid style-only nitpicks.
 - Approval requires observed verification evidence, not absence of obvious problems.
 - Note acceptance criteria requiring unavailable manual/runtime verification as unverified, not passed.
+- Material implementation disagreement with `SPEC.md` requires user confirmation through `wf specify <change> <ticket>`; never rewrite the specification merely to match the code.

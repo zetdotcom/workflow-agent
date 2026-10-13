@@ -19,10 +19,10 @@ Split change into individual deployable tickets.
    - Dependencies
    - Independently deployable and verifiable: yes, no, or after `NNN`
 4. Ask user to confirm, split, merge, reorder, add, or remove tickets. Iterate until confirmed.
-5. Create each ticket directory as `1.draft/NNN-slug/`.
-6. Create only `TICKET.md` inside it using `references/ticket-template.md`. Fill Summary and Technical Deep-Dive and set actual `created` and `updated` dates. Do not create plan, progress, or review files yet.
+5. Create each ticket directory as `1.draft/NNN-slug/`; letter-suffixed identifiers such as `005a` are also valid when needed.
+6. Create only `TICKET.md` inside each directory using `references/ticket-template.md`. Fill Summary and Technical Deep-Dive and set actual `created` and `updated` dates. Keep acceptance criteria concise and ticket-level; detailed user stories and scenarios belong in optional `SPEC.md` files created by `wf specify`.
 7. Update `STATUS.md` Todo section and actual `updated` date.
-8. Report created tickets and suggest `wf plan <change> <ticket>` using resolved change prefix and ticket number.
+8. Report created tickets. Suggest `wf specify <change> <ticket>` for behavior-heavy or risky tickets and when the user wants scenarios confirmed; otherwise suggest `wf plan <change> <ticket>`. Use the resolved change prefix and ticket number.
 
 ## Rules
 
@@ -34,4 +34,5 @@ Split change into individual deployable tickets.
 - Single-ticket breakdown is valid.
 - Summary must be Jira-ready, self-contained, stakeholder-readable, and free of speculative implementation details.
 - Technical Deep-Dive is developer/AI-facing: known contracts, directional approach, codebase anchors to validate, edge cases, and assumption warning. `wf plan` owns exact affected-file decisions.
+- Confirm ticket boundaries before specification. If the user asks to create specifications during breakdown, finish the confirmed breakdown first, then execute `wf specify` separately for each requested ticket; never duplicate its rules here.
 - Ticket directory name is stable across lifecycle moves.

@@ -9,6 +9,10 @@ updated: YYYY-MM-DD
 
 - Confirmed or corrected assumption with evidence
 
+## Relevant Archived Decisions
+
+- Archived change and decision, present applicability, and whether its revisit condition is met; or `None found` with the search terms used
+
 ## Verified Project Commands
 
 - Focused test:
@@ -19,6 +23,15 @@ updated: YYYY-MM-DD
 ## Verification Seams
 
 - Public interface or user surface, behavior proved, and why this is the highest stable seam
+
+## Specification Verification
+
+When `SPEC.md` exists, map every scenario and protected behavior to its planned evidence. Use `None — no SPEC.md` otherwise.
+
+| Scenario or protected behavior | Verification seam | Planned evidence | Phase |
+|---|---|---|---|
+| Scenario heading | Public interface or user surface | Focused automated check and direct runtime scenario, as applicable | 1 |
+
 
 ## Approach Summary
 

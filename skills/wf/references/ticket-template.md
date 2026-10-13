@@ -14,8 +14,10 @@ updated: YYYY-MM-DD
 **Scope:**
 
 **Acceptance Criteria:**
-- [ ] Observable outcome
-- [ ] Observable boundary or failure behavior
+- [ ] Concise ticket-level delivery outcome
+- [ ] Non-behavioral completion requirement, if any
+
+Detailed user stories, scenarios, protected behaviors, and exclusions belong in optional `SPEC.md` when the ticket is specified.
 
 **Verification Required:**
 - [ ] Automated check at a stable public seam

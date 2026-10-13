@@ -203,7 +203,7 @@ h3 { margin-bottom: .55rem; font-size: clamp(1rem, 1.8vw, 1.45rem); line-height:
 
   <section class="slide accent" data-title="Concept">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">01 / Why</div></div>
-    <div class="content"><span class="eyebrow">Core idea</span><h2>Workflow state lives beside code.</h2><p class="lead">Plain Markdown in <code>.workflow/</code>. No server. No database. Ticket directory location is lifecycle status.</p><div class="timeline"><div class="step"><code>wf new</code><small>open workspace</small></div><div class="step"><code>wf discover</code><small>clarify intent</small></div><div class="step"><code>wf breakdown</code><small>create tickets</small></div><div class="step"><code>wf plan</code><small>ground in code</small></div><div class="step"><code>wf implement</code><small>build by phase</small></div><div class="step"><code>wf complete</code><small>verify and archive</small></div></div></div>
+    <div class="content"><span class="eyebrow">Core idea</span><h2>Workflow state lives beside code.</h2><p class="lead">Plain Markdown in <code>.workflow/</code>. No server. No database. Ticket directory location is lifecycle status.</p><div class="timeline"><div class="step"><code>wf new</code><small>open workspace</small></div><div class="step"><code>wf discover</code><small>clarify intent</small></div><div class="step"><code>wf breakdown</code><small>create tickets</small></div><div class="step"><code>wf specify</code><small>confirm behavior</small></div><div class="step"><code>wf plan</code><small>ground in code</small></div><div class="step"><code>wf implement</code><small>build by phase</small></div><div class="step"><code>wf complete</code><small>verify and finish</small></div><div class="step"><code>wf archive</code><small>preserve the why</small></div></div></div>
   </section>
 
   <section class="slide" data-title="New">
@@ -266,11 +266,12 @@ h3 { margin-bottom: .55rem; font-size: clamp(1rem, 1.8vw, 1.45rem); line-height:
 
   <section class="slide" data-title="Plan">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">02 / Walkthrough · plan</div></div>
-    <div class="content"><span class="eyebrow">Step 4 · Ticket 001 done; plan frontend ticket</span><h2><code>wf plan ABC-123 002</code></h2><div class="split"><div class="flow-list"><div class="flow-row"><code>Explore</code><b>→</b><span>Components, hooks, API clients, analytics, tests</span></div><div class="flow-row"><code>Validate</code><b>→</b><span>Correct assumptions from <code>TICKET.md</code></span></div><div class="flow-row"><code>Design</code><b>→</b><span>Phases, affected files, verification criteria</span></div></div><div class="terminal compact"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree">ABC-123-add-paypal-checkout/
+    <div class="content"><span class="eyebrow">Step 4 · Ticket 001 done; plan frontend ticket</span><h2><code>wf plan ABC-123 002</code></h2><div class="split"><div class="flow-list"><div class="flow-row"><code>Explore</code><b>→</b><span>Components, hooks, API clients, analytics, tests</span></div><div class="flow-row"><code>Validate</code><b>→</b><span>Correct assumptions from <code>TICKET.md</code> and optional <code>SPEC.md</code></span></div><div class="flow-row"><code>Design</code><b>→</b><span>Phases, affected files, specification verification mapping</span></div></div><div class="terminal compact"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree">ABC-123-add-paypal-checkout/
 ├── 1.draft/
 ├── <span class="focus">2.todo/</span>
 │   └── <span class="move">002-paypal-checkout-ui/</span>
 │       ├── TICKET.md
+│       ├── SPEC.md
 │       ├── <span class="new-file">PLAN.md</span>
 │       └── <span class="new-file">PLAN-BRIEF.md</span>
 ├── 3.in-progress/
@@ -287,11 +288,12 @@ h3 { margin-bottom: .55rem; font-size: clamp(1rem, 1.8vw, 1.45rem); line-height:
 
   <section class="slide dark" data-title="Implement">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">02 / Walkthrough · build</div></div>
-    <div class="content"><span class="eyebrow">Step 5 · Execute one phase</span><h2><code>wf implement ABC-123 002 phase 1</code></h2><div class="split"><div><p class="lead">Agent reads ticket + plan, checks dependencies, moves ticket to in-progress, edits only phase scope, then runs phase checks.</p><div class="callout" style="color:#d6e8d8">If code contradicts plan materially, agent stops instead of improvising.</div></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree"><span class="dim">1.draft/</span>
+    <div class="content"><span class="eyebrow">Step 5 · Execute one phase</span><h2><code>wf implement ABC-123 002 phase 1</code></h2><div class="split"><div><p class="lead">Agent reads ticket, optional specification, and plan; checks dependencies; moves the ticket to in-progress; then implements and verifies only the selected behavior slice.</p><div class="callout" style="color:#d6e8d8">If code contradicts confirmed behavior or the plan materially, the agent stops instead of improvising.</div></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree"><span class="dim">1.draft/</span>
 <span class="dim">2.todo/</span>
 <span class="focus">3.in-progress/</span>
 └── <span class="move">002-paypal-checkout-ui/</span>
     ├── TICKET.md
+    ├── SPEC.md
     ├── PLAN.md
     ├── PLAN-BRIEF.md
     └── <span class="new-file">PROGRESS.md</span>
@@ -320,12 +322,12 @@ tests/checkout/...</pre></div></div></div>
 
   <section class="slide" data-title="Review">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">02 / Walkthrough · gates</div></div>
-    <div class="content"><span class="eyebrow">Optional review gates</span><h2>Use rigor where risk warrants it.</h2><div class="vs"><div><h3><code>wf plan-review ABC-123 002</code></h3><ul><li>Feasibility and codebase fit</li><li>Coverage and missing edge cases</li><li>Risk, rollout, and test quality</li></ul></div><div class="versus">OPTIONAL</div><div><h3><code>wf impl-review ABC-123 002</code></h3><ul><li>Diff against plan and ticket</li><li>Acceptance criteria and tests</li><li>Regressions and unresolved findings</li></ul></div></div><div class="callout">First review creates <code>REVIEWS.md</code>; later reviews append dated findings.</div></div>
+    <div class="content"><span class="eyebrow">Optional review gates</span><h2>Use rigor where risk warrants it.</h2><div class="vs"><div><h3><code>wf plan-review ABC-123 002</code></h3><ul><li>Feasibility and codebase fit</li><li>Scenario coverage and missing edge cases</li><li>Risk, rollout, and test quality</li></ul></div><div class="versus">OPTIONAL</div><div><h3><code>wf impl-review ABC-123 002</code></h3><ul><li>Diff against plan and ticket</li><li>Acceptance criteria, specification, and tests</li><li>Regressions and unresolved findings</li></ul></div></div><div class="callout">First review creates <code>REVIEWS.md</code>; later reviews append dated findings.</div></div>
   </section>
 
   <section class="slide" data-title="Complete">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">02 / Walkthrough · finish</div></div>
-    <div class="content"><span class="eyebrow">Step 6 · Verify, then finish</span><h2><code>wf complete ABC-123 002</code></h2><div class="split"><div class="artifact-stack"><div class="artifact"><code>Readiness checks</code><p>Phases, final verification, acceptance criteria, unresolved review items.</p></div><div class="artifact"><code>PROGRESS.md</code><p>Completion record appended.</p></div><div class="artifact"><code>STATUS.md</code><p>Progress counter and next actionable ticket updated.</p></div></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree">ABC-123-add-paypal-checkout/
+    <div class="content"><span class="eyebrow">Step 6 · Verify, then finish</span><h2><code>wf complete ABC-123 002</code></h2><div class="split"><div class="artifact-stack"><div class="artifact"><code>Readiness checks</code><p>Phases, final verification, acceptance criteria, optional specification coverage, unresolved review items.</p></div><div class="artifact"><code>PROGRESS.md</code><p>Completion record appended.</p></div><div class="artifact"><code>STATUS.md</code><p>Progress counter and next actionable ticket updated.</p></div></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree">ABC-123-add-paypal-checkout/
 ├── 1.draft/
 ├── 2.todo/
 ├── 3.in-progress/
@@ -333,10 +335,18 @@ tests/checkout/...</pre></div></div></div>
     ├── 001-provider-contract/
     └── <span class="move">002-paypal-checkout-ui/</span>
         ├── TICKET.md
+        ├── SPEC.md
         ├── PLAN.md
         ├── PLAN-BRIEF.md
         ├── PROGRESS.md
         └── REVIEWS.md</pre></div></div></div>
+  </section>
+
+  <section class="slide" data-title="Archive">
+    <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">02 / Walkthrough · preserve</div></div>
+    <div class="content"><span class="eyebrow">Step 7 · Preserve the why</span><h2><code>wf archive ABC-123</code></h2><div class="split"><div><p class="lead">Distills any terminal change into one dated <code>SUMMARY.md</code>: outcome, lasting decisions, invariants, limits, evidence, and references. Preview the complete summary and removal manifest before confirming.</p><div class="callout">Outcomes are explicit: <code>completed</code>, <code>cancelled</code>, <code>superseded</code>, or <code>closed-incomplete</code>.</div></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i></div><pre class="tree">.workflow/<span class="focus">archive/</span>
+  └── 2026-10-13-ABC-123-add-paypal-checkout/
+      └── SUMMARY.md</pre></div></div></div>
   </section>
 
   <section class="slide dark" data-title="Status">
@@ -361,7 +371,7 @@ Recommended next action:
 
   <section class="slide" data-title="Command map">
     <div class="topline"><div class="brand"><span>workflow</span>-agent</div><div class="chapter">04 / Reference</div></div>
-    <div class="content"><span class="eyebrow">Command → repository effect</span><h2>What touches your codebase?</h2><div class="flow-list"><div class="flow-row"><code>--worktree</code><b>→</b><span>Optional sibling worktree; branch/ref, reuse, and installs stay confirmed</span></div><div class="flow-row"><code>new / discover</code><b>→</b><span>Change-level <code>CONTEXT.md</code> + <code>STATUS.md</code></span></div><div class="flow-row"><code>breakdown</code><b>→</b><span>Draft ticket directories + <code>TICKET.md</code></span></div><div class="flow-row"><code>plan</code><b>→</b><span><code>PLAN.md</code> + <code>PLAN-BRIEF.md</code>; ticket moves to todo</span></div><div class="flow-row"><code>implement</code><b>→</b><span>Application code + tests + <code>PROGRESS.md</code>; ticket moves in-progress</span></div><div class="flow-row"><code>reviews / complete</code><b>→</b><span><code>REVIEWS.md</code>; verified ticket moves to done</span></div><div class="flow-row"><code>status</code><b>→</b><span>Read-only, except repairing derived <code>STATUS.md</code> drift</span></div></div></div>
+    <div class="content"><span class="eyebrow">Command → repository effect</span><h2>What touches your codebase?</h2><div class="flow-list"><div class="flow-row"><code>--worktree</code><b>→</b><span>Optional sibling worktree; branch/ref, reuse, and installs stay confirmed</span></div><div class="flow-row"><code>new / discover</code><b>→</b><span>Change-level <code>CONTEXT.md</code> + <code>STATUS.md</code></span></div><div class="flow-row"><code>breakdown</code><b>→</b><span>Draft ticket directories + <code>TICKET.md</code></span></div><div class="flow-row"><code>specify</code><b>→</b><span>Optional confirmed ticket-level <code>SPEC.md</code>; lifecycle state unchanged</span></div><div class="flow-row"><code>plan</code><b>→</b><span><code>PLAN.md</code> + <code>PLAN-BRIEF.md</code>; ticket moves to todo</span></div><div class="flow-row"><code>implement</code><b>→</b><span>Application code + tests + <code>PROGRESS.md</code>; ticket moves in-progress</span></div><div class="flow-row"><code>reviews / complete</code><b>→</b><span><code>REVIEWS.md</code>; verified ticket moves to done</span></div><div class="flow-row"><code>archive</code><b>→</b><span>Dated <code>SUMMARY.md</code>; active change removed after confirmation</span></div><div class="flow-row"><code>status</code><b>→</b><span>Read-only, except repairing derived <code>STATUS.md</code> drift</span></div></div></div>
   </section>
 
   <section class="slide dark" data-title="Questions">
