@@ -493,6 +493,33 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
   font-size: 0.52rem;
   text-transform: uppercase;
 }
+.delivery-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+}
+.manual-delivery { display: grid; gap: 0.75rem; }
+.superseded-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.4rem;
+  border-radius: 20%;
+  background: rgba(118,168,128,0.16);
+  border: 1px solid rgba(118,168,128,0.44);
+  color: #c6dbc9;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
+}
+.superseded-note .arrow { color: var(--crisp-sage); font-size: 1.6rem; line-height: 1; text-shadow: 0 0 9px rgba(118,168,128,0.65); }
+.to-pr-node { min-height: 100%; }
 .status-rail {
   display: flex;
   align-items: center;
@@ -701,6 +728,9 @@ footer a:hover { color: var(--crisp-text); }
 
   .lifecycle-canvas { padding: 1.25rem; }
   .canvas-legend { justify-content: flex-start; }
+  .delivery-choice { grid-template-columns: 1fr; }
+  .superseded-note { flex-direction: row; justify-content: center; border-radius: 12px; }
+  .superseded-note .arrow { transform: rotate(90deg); }
   .status-rail { align-items: flex-start; flex-wrap: wrap; }
 
   .compare-wrap { padding: 0; }
@@ -1070,29 +1100,37 @@ wf status archived PYE-1123</div>
           <code class="life-command">wf plan-review PYE-1123 001</code>
           <span class="artifact">REVIEWS.md</span>
         </div>
-        <div class="life-node">
-          <h3>wf implement</h3>
-          <p>Execute, test, and record each phase.</p>
-          <code class="life-command">wf implement PYE-1123 001 phase 1</code>
-          <span class="artifact">PROGRESS.md</span>
-        </div>
-        <div class="life-node optional">
-          <h3>wf impl-review</h3>
-          <p>Check diffs, tests, plan adherence, and acceptance criteria.</p>
-          <code class="life-command">wf impl-review PYE-1123 001</code>
-          <span class="artifact">REVIEWS.md</span>
-        </div>
-        <div class="life-node optional">
-          <h3>wf to-pr</h3>
-          <p>Replace <code>implement</code> and <code>impl-review</code>: autonomously execute, verify, independently review, complete the ticket, and create a ready or qualified draft pull request.</p>
-          <code class="life-command">wf to-pr PYE-1123 001</code>
-          <span class="artifact">PROGRESS.md · TO-PR.md · pull request</span>
-        </div>
-        <div class="life-node">
-          <h3>wf complete</h3>
-          <p>Verify readiness and move the ticket to done.</p>
-          <code class="life-command">wf complete PYE-1123 001</code>
-          <span class="artifact">4.done/ · STATUS.md</span>
+        <div class="delivery-choice">
+          <div class="manual-delivery">
+            <div class="life-node">
+              <h3>wf implement</h3>
+              <p>Execute, test, and record each phase.</p>
+              <code class="life-command">wf implement PYE-1123 001 phase 1</code>
+              <span class="artifact">PROGRESS.md</span>
+            </div>
+            <div class="life-node optional">
+              <h3>wf impl-review</h3>
+              <p>Check diffs, tests, plan adherence, and acceptance criteria.</p>
+              <code class="life-command">wf impl-review PYE-1123 001</code>
+              <span class="artifact">REVIEWS.md</span>
+            </div>
+            <div class="life-node">
+              <h3>wf complete</h3>
+              <p>Verify readiness and move the ticket to done.</p>
+              <code class="life-command">wf complete PYE-1123 001</code>
+              <span class="artifact">4.done/ · STATUS.md</span>
+            </div>
+          </div>
+          <div class="superseded-note">
+            <span>Superseded by<br>wf to-pr</span>
+            <span class="arrow" aria-hidden="true">→</span>
+          </div>
+          <div class="life-node optional to-pr-node">
+            <h3>wf to-pr</h3>
+            <p>Autonomously execute, verify, independently review, complete the ticket, and create a ready or qualified draft pull request.</p>
+            <code class="life-command">wf to-pr PYE-1123 001</code>
+            <span class="artifact">PROGRESS.md · TO-PR.md · pull request</span>
+          </div>
         </div>
         <div class="life-node">
           <h3>wf archive</h3>
