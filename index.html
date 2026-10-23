@@ -442,22 +442,9 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
 .canvas-key { display: flex; align-items: center; gap: 0.45rem; color: rgba(239,239,239,0.58); font-size: 0.7rem; }
 .canvas-key::before { content: ''; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--crisp-sage); box-shadow: 0 0 8px rgba(118,168,128,0.55); }
 .canvas-key.optional::before { background: var(--burnished-copper); box-shadow: none; }
-.lifecycle-lane { display: grid; grid-template-columns: 1fr 2rem 1fr 2rem 1fr; align-items: center; }
-.lifecycle-lane.deliver-lane { grid-template-columns: 1fr 2rem 1fr 2rem 1fr 2rem 1fr; }
-.lifecycle-lane + .lifecycle-lane { margin-top: 1.5rem; }
-.lane-name {
-  grid-column: 1 / -1;
-  margin-bottom: 0.65rem;
-  color: rgba(239,239,239,0.42);
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+.lifecycle-list { display: grid; gap: 0.75rem; }
 .life-node {
   position: relative;
-  min-height: 112px;
   padding: 1rem;
   border-radius: 14px;
   background: rgba(242,239,233,0.08);
@@ -468,6 +455,16 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
 .life-node:hover { transform: translateY(-3px); background: rgba(242,239,233,0.12); }
 .life-node h3 { color: var(--crisp-sage); font-family: var(--mono); font-size: 0.86rem; margin-bottom: 0.4rem; }
 .life-node p { color: rgba(239,239,239,0.72); font-size: 0.75rem; line-height: 1.45; }
+.life-command {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 5px;
+  background: rgba(0,0,0,0.2);
+  color: var(--crisp-text);
+  font-family: var(--mono);
+  font-size: 0.67rem;
+}
 .artifact {
   display: inline-block;
   margin-top: 0.65rem;
@@ -478,27 +475,13 @@ section .lead { color: rgba(26, 51, 36, 0.75); font-size: 1.05rem; margin-bottom
   font-family: var(--mono);
   font-size: 0.59rem;
 }
-.life-arrow { color: var(--crisp-sage); text-align: center; font-size: 1.2rem; text-shadow: 0 0 9px rgba(118,168,128,0.65); }
-.review-branch {
-  display: grid;
-  grid-template-columns: 1fr 2rem 1fr 2rem 1fr;
-  align-items: start;
-  margin: 0.65rem 0 0;
-}
-.review-node {
-  position: relative;
-  padding: 0.65rem 0.8rem;
+.life-node.optional {
   border: 1px solid rgba(156,95,50,0.55);
-  border-radius: 10px;
   background: rgba(156,95,50,0.15);
-  color: #e5c5ad;
-  font-size: 0.68rem;
-  line-height: 1.4;
 }
-.review-node:first-child { grid-column: 1; }
-.review-node:last-child { grid-column: 3; }
-.review-node code { display: block; color: #f0d4bf; font-family: var(--mono); font-size: 0.67rem; font-weight: 700; }
-.review-node::before {
+.life-node.optional h3,
+.life-node.optional .life-command { color: #f0d4bf; }
+.life-node.optional::before {
   content: 'optional';
   position: absolute;
   top: -0.55rem; right: 0.5rem;
@@ -718,12 +701,6 @@ footer a:hover { color: var(--crisp-text); }
 
   .lifecycle-canvas { padding: 1.25rem; }
   .canvas-legend { justify-content: flex-start; }
-  .lifecycle-lane { grid-template-columns: 1fr; gap: 0.5rem; }
-  .lifecycle-lane.deliver-lane { grid-template-columns: 1fr; }
-  .life-node { min-height: 0; }
-  .life-arrow { transform: rotate(90deg); }
-  .review-branch { grid-template-columns: 1fr; gap: 0.75rem; margin-top: 1rem; }
-  .review-node:first-child, .review-node:last-child { grid-column: 1; }
   .status-rail { align-items: flex-start; flex-wrap: wrap; }
 
   .compare-wrap { padding: 0; }
@@ -1048,71 +1025,87 @@ wf status archived PYE-1123</div>
 
   <section id="lifecycle">
     <h2>The Lifecycle</h2>
-    <p class="lead">One entry point, eleven commands. Ticket specification, reviews, and autonomous pull-request delivery are optional — use them where behavioral agreement or risk warrants the extra gate.</p>
+    <p class="lead">Start a change, discuss it with the agent, then turn the agreed outcome into tickets. Each command leaves its context, decisions, plans, reviews, and delivery evidence in your repository.</p>
 
-    <div class="lifecycle-canvas canopy" role="img" aria-label="workflow-agent lifecycle from new change through completion, including optional reviews and status available throughout">
+    <div class="lifecycle-canvas canopy" aria-label="workflow-agent lifecycle commands, examples, and created files">
       <div class="canvas-legend" aria-hidden="true">
         <span class="canvas-key">Core command</span>
         <span class="canvas-key optional">Optional gate</span>
       </div>
 
-      <div class="lifecycle-lane">
-        <div class="lane-name">Define the work</div>
+      <div class="lifecycle-list">
         <div class="life-node">
           <h3>wf new</h3>
           <p>Open a persistent change workspace.</p>
+          <code class="life-command">wf new PYE-1123 "Payment retry"</code>
           <span class="artifact">CONTEXT.md · STATUS.md</span>
         </div>
-        <div class="life-arrow" aria-hidden="true">→</div>
         <div class="life-node">
           <h3>wf discover</h3>
-          <p>Clarify goals, scope, risks, and rollout.</p>
-          <span class="artifact">CONTEXT.md updated</span>
+          <p>Have a focused discussion with the agent: define the problem, users, desired behavior, boundaries, risks, and rollout before creating tickets.</p>
+          <code class="life-command">wf discover PYE-1123</code>
+          <span class="artifact">CONTEXT.md · agreed change definition</span>
         </div>
-        <div class="life-arrow" aria-hidden="true">→</div>
         <div class="life-node">
           <h3>wf breakdown</h3>
           <p>Create confirmed, deployable tickets.</p>
+          <code class="life-command">wf breakdown PYE-1123</code>
           <span class="artifact">TICKET.md</span>
         </div>
-      </div>
-
-      <div class="lifecycle-lane deliver-lane">
-        <div class="lane-name">Deliver each ticket</div>
-        <div class="life-node">
+        <div class="life-node optional">
           <h3>wf specify</h3>
           <p>Confirm user stories, scenarios, and protected behavior.</p>
+          <code class="life-command">wf specify PYE-1123 001</code>
           <span class="artifact">SPEC.md · optional</span>
         </div>
-        <div class="life-arrow" aria-hidden="true">→</div>
         <div class="life-node">
           <h3>wf plan</h3>
           <p>Explore code and design verifiable phases.</p>
+          <code class="life-command">wf plan PYE-1123 001</code>
           <span class="artifact">PLAN.md · PLAN-BRIEF.md</span>
         </div>
-        <div class="life-arrow" aria-hidden="true">→</div>
+        <div class="life-node optional">
+          <h3>wf plan-review</h3>
+          <p>Validate feasibility, coverage, and risk before coding.</p>
+          <code class="life-command">wf plan-review PYE-1123 001</code>
+          <span class="artifact">REVIEWS.md</span>
+        </div>
         <div class="life-node">
           <h3>wf implement</h3>
           <p>Execute, test, and record each phase.</p>
+          <code class="life-command">wf implement PYE-1123 001 phase 1</code>
           <span class="artifact">PROGRESS.md</span>
         </div>
-        <div class="life-arrow" aria-hidden="true">→</div>
+        <div class="life-node optional">
+          <h3>wf impl-review</h3>
+          <p>Check diffs, tests, plan adherence, and acceptance criteria.</p>
+          <code class="life-command">wf impl-review PYE-1123 001</code>
+          <span class="artifact">REVIEWS.md</span>
+        </div>
+        <div class="life-node optional">
+          <h3>wf to-pr</h3>
+          <p>Replace <code>implement</code> and <code>impl-review</code>: autonomously execute, verify, independently review, complete the ticket, and create a ready or qualified draft pull request.</p>
+          <code class="life-command">wf to-pr PYE-1123 001</code>
+          <span class="artifact">PROGRESS.md · TO-PR.md · pull request</span>
+        </div>
         <div class="life-node">
           <h3>wf complete</h3>
           <p>Verify readiness and move the ticket to done.</p>
+          <code class="life-command">wf complete PYE-1123 001</code>
           <span class="artifact">4.done/ · STATUS.md</span>
         </div>
-      </div>
-
-      <div class="review-branch">
-        <div class="review-node"><code>wf plan-review</code>Validate feasibility, coverage, and risk before coding.</div>
-        <div class="review-node"><code>wf impl-review</code>Check diffs, tests, plan adherence, and acceptance criteria.</div>
+        <div class="life-node">
+          <h3>wf archive</h3>
+          <p>Preserve the outcome and lasting decisions after the change is finished.</p>
+          <code class="life-command">wf archive PYE-1123</code>
+          <span class="artifact">SUMMARY.md</span>
+        </div>
       </div>
 
       <div class="status-rail">
         <span class="status-pulse" aria-hidden="true"></span>
         <code>wf status</code>
-        <p>Available at every stage: reconcile persisted state, show progress, and recommend the exact next command.</p>
+        <p>Run <code>wf status PYE-1123</code> at every stage to reconcile persisted state, show progress, and recommend the exact next command.</p>
       </div>
     </div>
   </section>
