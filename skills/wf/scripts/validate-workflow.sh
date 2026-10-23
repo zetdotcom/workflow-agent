@@ -88,6 +88,138 @@ validate_archive_summary() {
   esac
 }
 
+validate_to_pr() {
+  local file="$1"
+  local status="$2"
+  local line state="" spec_identity="" plan_identity="" baseline_head="" baseline_branch=""
+  local baseline_paths_fingerprint="" active_phase="" completed_phases="" phase_attempts=""
+  local review_cycle="" delivery_kind="" runtime_limitation_recorded="" pr_url="" completion_recorded="" push_result="" line_number=0
+
+  validate_document "$file" yes
+  [[ -f "$file" ]] || return
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line_number=$((line_number + 1))
+    (( line_number == 1 )) && continue
+    [[ "$line" == "---" ]] && break
+    case "$line" in
+      state:\ *) state="${line#state: }" ;;
+      spec_identity:\ *) spec_identity="${line#spec_identity: }" ;;
+      plan_identity:\ *) plan_identity="${line#plan_identity: }" ;;
+      baseline_head:\ *) baseline_head="${line#baseline_head: }" ;;
+      baseline_branch:\ *) baseline_branch="${line#baseline_branch: }" ;;
+      baseline_paths_fingerprint:\ *) baseline_paths_fingerprint="${line#baseline_paths_fingerprint: }" ;;
+      active_phase:\ *) active_phase="${line#active_phase: }" ;;
+      completed_phases:\ *) completed_phases="${line#completed_phases: }" ;;
+      phase_attempts:\ *) phase_attempts="${line#phase_attempts: }" ;;
+      review_cycle:\ *) review_cycle="${line#review_cycle: }" ;;
+      delivery_kind:\ *) delivery_kind="${line#delivery_kind: }" ;;
+      runtime_limitation_recorded:\ *) runtime_limitation_recorded="${line#runtime_limitation_recorded: }" ;;
+      pr_url:\ *) pr_url="${line#pr_url: }" ;;
+      completion_recorded:\ *) completion_recorded="${line#completion_recorded: }" ;;
+      push_result:\ *) push_result="${line#push_result: }" ;;
+    esac
+  done < "$file"
+
+  case "$state" in
+    preflight|phase-[1-9]|phase-[1-9][0-9]*|final-verification|review|review-repair|delivery|blocked|delivered-to-review) ;;
+    *) error "invalid TO-PR state: ${file#"$root"/}" ;;
+  esac
+
+  [[ -n "$spec_identity" ]] || error "missing TO-PR spec_identity: ${file#"$root"/}"
+  [[ -n "$plan_identity" ]] || error "missing TO-PR plan_identity: ${file#"$root"/}"
+  [[ -n "$baseline_head" ]] || error "missing TO-PR baseline_head: ${file#"$root"/}"
+  [[ -n "$baseline_branch" ]] || error "missing TO-PR baseline_branch: ${file#"$root"/}"
+  [[ -n "$baseline_paths_fingerprint" ]] || error "missing TO-PR baseline_paths_fingerprint: ${file#"$root"/}"
+
+  for counter in active_phase completed_phases phase_attempts review_cycle; do
+    value="${!counter}"
+    [[ "$value" =~ ^[0-9]+$ ]] || error "invalid or missing TO-PR $counter: ${file#"$root"/}"
+  done
+
+  case "$delivery_kind" in
+    none|ready|draft) ;;
+    *) error "invalid or missing TO-PR delivery_kind: ${file#"$root"/}" ;;
+  esac
+
+  case "$completion_recorded" in
+    yes|no) ;;
+    *) error "invalid or missing TO-PR completion_recorded: ${file#"$root"/}" ;;
+  esac
+
+  case "$runtime_limitation_recorded" in
+    yes|no) ;;
+    *) error "invalid or missing TO-PR runtime_limitation_recorded: ${file#"$root"/}" ;;
+  esac
+
+  case "$push_result" in
+    ""|none|success|failure) ;;
+    *) error "invalid TO-PR push_result: ${file#"$root"/}" ;;
+  esac
+
+  case "$state" in
+    preflight)
+      [[ "$active_phase" == "0" && "$completed_phases" == "0" ]] ||
+        error "preflight TO-PR state requires zero active and completed phases: ${file#"$root"/}"
+      [[ "$delivery_kind" == "none" && "$push_result" == "none" && "$completion_recorded" == "no" ]] ||
+        error "preflight TO-PR state cannot contain delivery metadata: ${file#"$root"/}"
+      ;;
+    phase-*)
+      phase_number="${state#phase-}"
+      [[ "$active_phase" == "$phase_number" ]] ||
+        error "phase TO-PR state active_phase does not match state: ${file#"$root"/}"
+      expected_completed=$((phase_number - 1))
+      [[ "$completed_phases" == "$expected_completed" ]] ||
+        error "phase TO-PR state requires preceding phases completed: ${file#"$root"/}"
+      [[ "$delivery_kind" == "none" && "$push_result" == "none" && "$completion_recorded" == "no" ]] ||
+        error "phase TO-PR state cannot contain delivery metadata: ${file#"$root"/}"
+      ;;
+    final-verification|review|review-repair)
+      [[ "$active_phase" == "0" && "$completed_phases" -gt "0" ]] ||
+        error "$state TO-PR state requires completed phases and no active phase: ${file#"$root"/}"
+      [[ "$delivery_kind" == "none" && "$push_result" == "none" && "$completion_recorded" == "no" ]] ||
+        error "$state TO-PR state cannot contain delivery metadata: ${file#"$root"/}"
+      ;;
+    delivery)
+      [[ "$active_phase" == "0" && "$completed_phases" -gt "0" ]] ||
+        error "delivery TO-PR state requires completed phases and no active phase: ${file#"$root"/}"
+      [[ "$completion_recorded" == "no" ]] ||
+        error "delivery TO-PR state cannot record completion: ${file#"$root"/}"
+      ;;
+  esac
+
+  if [[ "$delivery_kind" == "draft" ]]; then
+    [[ "$runtime_limitation_recorded" == "yes" ]] ||
+      error "draft TO-PR delivery requires runtime limitation: ${file#"$root"/}"
+  elif [[ "$delivery_kind" == "ready" ]]; then
+    [[ "$runtime_limitation_recorded" == "no" ]] ||
+      error "ready TO-PR delivery cannot record runtime limitation: ${file#"$root"/}"
+  else
+    [[ "$runtime_limitation_recorded" == "no" ]] ||
+      error "non-delivery TO-PR state cannot record runtime limitation: ${file#"$root"/}"
+  fi
+
+  if [[ "$state" == "delivered-to-review" ]]; then
+    [[ "$status" == "4.done" ]] || error "delivered-to-review requires 4.done ticket: ${file#"$root"/}"
+    [[ "$delivery_kind" == "ready" || "$delivery_kind" == "draft" ]] ||
+      error "delivered-to-review requires ready or draft delivery_kind: ${file#"$root"/}"
+    [[ "$pr_url" =~ ^https?://[^[:space:]]+$ ]] ||
+      error "missing TO-PR pr_url: ${file#"$root"/}"
+    [[ "$push_result" == "success" ]] ||
+      error "delivered-to-review requires push_result: success: ${file#"$root"/}"
+    [[ "$completion_recorded" == "yes" ]] ||
+      error "delivered-to-review requires completion_recorded: yes: ${file#"$root"/}"
+    [[ "$active_phase" == "0" && "$completed_phases" -gt "0" ]] ||
+      error "delivered-to-review requires completed phases and no active phase: ${file#"$root"/}"
+  elif [[ "$state" == "blocked" ]]; then
+    grep -q '^##\? Blocker' "$file" ||
+      error "blocked TO-PR state requires a blocker section: ${file#"$root"/}"
+  elif [[ -n "$pr_url" ]]; then
+    [[ "$state" == "delivery" || "$state" == "blocked" ]] ||
+      error "TO-PR pr_url is only valid during delivery or after delivery: ${file#"$root"/}"
+  fi
+}
+
 if [[ ! -d "$changes_root" ]]; then
   echo "ERROR: missing workflow root: .workflow/changes" >&2
   exit 1
@@ -150,6 +282,14 @@ for change in "$changes_root"/*; do
         [[ -e "$document" ]] || continue
         case "$(basename "$document")" in
           TICKET.md|PLAN.md|PLAN-BRIEF.md|PROGRESS.md) continue ;;
+          TO-PR.md)
+            if [[ "$status" == "3.in-progress" || "$status" == "4.done" ]]; then
+              validate_to_pr "$document" "$status"
+            else
+              error "TO-PR.md is only valid in 3.in-progress or 4.done: ${document#"$root"/}"
+            fi
+            continue
+            ;;
         esac
         validate_document "$document" yes
       done

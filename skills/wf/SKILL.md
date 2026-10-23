@@ -40,6 +40,7 @@ Without explicit or natural-language worktree intent, skip setup and preserve ex
 | `plan-review` | Optionally review plan | `references/plan-review.md` |
 | `implement` | Execute implementation plan | `references/implement.md` |
 | `impl-review` | Optionally review code changes | `references/impl-review.md` |
+| `to-pr` | Execute an approved ticket through review delivery | `references/to-pr.md` |
 | `complete` | Mark ticket done | `references/complete.md` |
 | `archive` | Distill and archive a change | `references/archive.md` |
 | `status` | Show progress and next actions | `references/status.md` |
@@ -92,6 +93,7 @@ Ticket directory files:
 - `PLAN-BRIEF.md`: concise human-readable explanation of planned changes and data flow; created during planning
 - `PROGRESS.md`: phase results, verification, deviations, reopening notes, and PR-feedback work; created when first needed
 - `REVIEWS.md`: dated plan and implementation reviews; created when first review runs
+- `TO-PR.md`: resumable autonomous implementation, verification, review, and delivery state; created by `wf to-pr`
 
 An archived change contains only `SUMMARY.md`: outcome, current behavior and invariants, lasting decisions, stable codebase map, operational changes, limits, verification, and references. The physical directory date is the archive date; the original slug remains the logical change identity.
 
@@ -126,6 +128,7 @@ Do not create empty optional files. Commands must read only files relevant to th
 - Plan review and implementation review are optional; warn before bypassing relevant review, but permit explicit override.
 - Plans are detailed, comprehensive, and divided into coherent, independently verifiable behavior slices. Each phase leaves the repository in a working state.
 - Tests target stable public seams and observable behavior. Runtime smoke evidence is required for a changed runnable surface; tests alone are not proof that the surface works.
+- `wf to-pr` additionally requires host capabilities for fresh-agent dispatch and pull-request creation. It prefers `playwright-cli` for browser-runnable changes: unavailable browser verification permits only a qualified draft, while observed failures enter bounded repair and block delivery if unresolved. It never falls back to single-session execution or substitute browser evidence.
 - `done` is not immutable. PR feedback changes may update code and ticket notes while ticket remains in `4.done/`.
 - `done -> in-progress` is valid when user explicitly requests reopening; record reason and update dates.
 - Follow-up work beyond original ticket or PR-review scope should become a new ticket.

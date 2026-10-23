@@ -107,6 +107,227 @@ expect_failure 'missing YAML frontmatter closer: .workflow/changes/PROJ-123-chec
 write_document "$CHANGE/4.done/003-finished/REVIEWS.md"
 "$VALIDATOR" "$REPO" >/dev/null
 
+TO_PR="$CHANGE/3.in-progress/004-autonomous"
+write_document "$TO_PR/TICKET.md"
+write_document "$TO_PR/PLAN.md"
+write_document "$TO_PR/PLAN-BRIEF.md"
+write_document "$TO_PR/PROGRESS.md"
+cat > "$TO_PR/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: phase-1
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 1
+completed_phases: 0
+phase_attempts: 1
+review_cycle: 0
+delivery_kind: none
+runtime_limitation_recorded: no
+push_result: success
+completion_recorded: no
+push_result: none
+---
+# Autonomous Ticket-to-PR Run
+EOF
+"$VALIDATOR" "$REPO" >/dev/null
+
+cat > "$TO_PR/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: draft
+runtime_limitation_recorded: yes
+push_result: success
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: yes
+runtime_limitation_recorded: yes
+push_result: success
+---
+# Autonomous Ticket-to-PR Run
+EOF
+mkdir -p "$CHANGE/4.done/004-autonomous"
+mv "$TO_PR/TO-PR.md" "$CHANGE/4.done/004-autonomous/TO-PR.md"
+mv "$TO_PR/TICKET.md" "$CHANGE/4.done/004-autonomous/TICKET.md"
+mv "$TO_PR/PLAN.md" "$CHANGE/4.done/004-autonomous/PLAN.md"
+mv "$TO_PR/PLAN-BRIEF.md" "$CHANGE/4.done/004-autonomous/PLAN-BRIEF.md"
+mv "$TO_PR/PROGRESS.md" "$CHANGE/4.done/004-autonomous/PROGRESS.md"
+rmdir "$TO_PR"
+"$VALIDATOR" "$REPO" >/dev/null
+
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 1
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: draft
+runtime_limitation_recorded: yes
+push_result: success
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: yes
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'delivered-to-review requires completed phases and no active phase: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: final-verification
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 0
+delivery_kind: draft
+runtime_limitation_recorded: yes
+push_result: none
+completion_recorded: no
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'final-verification TO-PR state cannot contain delivery metadata: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: unknown
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: draft
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: yes
+runtime_limitation_recorded: yes
+push_result: success
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'invalid TO-PR state: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity:
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: draft
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: yes
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'missing TO-PR spec_identity: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: ready
+runtime_limitation_recorded: no
+push_result: success
+completion_recorded: yes
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'missing TO-PR pr_url: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: ready
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: no
+runtime_limitation_recorded: no
+push_result: success
+---
+# Autonomous Ticket-to-PR Run
+EOF
+expect_failure 'delivered-to-review requires completion_recorded: yes: .workflow/changes/PROJ-123-checkout/4.done/004-autonomous/TO-PR.md'
+cat > "$CHANGE/4.done/004-autonomous/TO-PR.md" <<EOF
+---
+created: $TODAY
+updated: $TODAY
+state: delivered-to-review
+spec_identity: spec-sha
+plan_identity: plan-sha
+baseline_head: abc123
+baseline_branch: feature/test
+baseline_paths_fingerprint: paths-sha
+active_phase: 0
+completed_phases: 1
+phase_attempts: 1
+review_cycle: 1
+delivery_kind: draft
+pr_url: https://github.com/example/repo/pull/1
+completion_recorded: yes
+runtime_limitation_recorded: yes
+push_result: success
+---
+# Autonomous Ticket-to-PR Run
+EOF
+
 ARCHIVE="$ARCHIVE_ROOT/$TODAY-PROJ-789-auth"
 write_archive_summary "$ARCHIVE/SUMMARY.md" 'PROJ-789-auth' "$TODAY" 'completed'
 "$VALIDATOR" "$REPO" >/dev/null
