@@ -1016,9 +1016,11 @@ wf plan-review PYE-1123 001   <span class="c"># optional sanity check</span></di
         <div class="step-badge">5</div>
         <div class="step-body">
           <h3>Implement, phase by phase — <code>wf implement</code></h3>
-          <p>Executes one verifiable phase at a time, runs tests, and records results in <code>PROGRESS.md</code>. Resume any phase later.</p>
+          <p>Executes one verifiable phase at a time, runs tests, and records results in <code>PROGRESS.md</code>. Resume any phase later. For an approved plan, <code>wf to-pr</code> is an optional autonomous path.</p>
           <div class="code-block">wf implement PYE-1123 001 phase 1
-wf impl-review PYE-1123 001   <span class="c"># optional code review vs plan</span></div>
+wf impl-review PYE-1123 001   <span class="c"># optional code review vs plan</span>
+wf to-pr PYE-1123 001        <span class="c"># optional verified path to pull request</span></div>
+          <p class="hint">For browser-runnable changes, the autonomous path prefers <code>playwright-cli</code> during affected phases and independently repeats the complete browser flow before delivery. Observed failures enter bounded repair and block delivery if unresolved; unavailable browser verification permits only a draft with explicit human checks. It records exact commands and observed results in <code>TO-PR.md</code>, preserves unrelated dirty work, and ends at <code>delivered-to-review</code>. It does not claim CI success, merge, or deployment.</p>
         </div>
       </div>
 
@@ -1046,7 +1048,7 @@ wf status archived PYE-1123</div>
 
   <section id="lifecycle">
     <h2>The Lifecycle</h2>
-    <p class="lead">One entry point, ten commands. Ticket specification and reviews are optional — use them where behavioral agreement or risk warrants the extra gate.</p>
+    <p class="lead">One entry point, eleven commands. Ticket specification, reviews, and autonomous pull-request delivery are optional — use them where behavioral agreement or risk warrants the extra gate.</p>
 
     <div class="lifecycle-canvas canopy" role="img" aria-label="workflow-agent lifecycle from new change through completion, including optional reviews and status available throughout">
       <div class="canvas-legend" aria-hidden="true">

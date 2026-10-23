@@ -47,6 +47,26 @@ Run each case in a fresh agent session against a disposable repository. Record m
 - [ ] When `SPEC.md` exists, implementation records evidence against every scenario and protected behavior, review identifies uncovered behavior, and completion does not pass missing coverage.
 - [ ] A material behavior mismatch stops planning or implementation and returns to `wf specify` for user confirmation; the agent never rewrites the specification merely to match code.
 
+## Autonomous Ticket To Pull Request
+
+- [ ] `wf to-pr PROJ-123 001` requires `SPEC.md`, `PLAN.md`, `PLAN-BRIEF.md`, complete dependencies, an unblocked plan review, `fresh-agent-dispatch`, and `pull-request-create`; each missing prerequisite stops before production changes with `to-pr prerequisite unavailable: <capability>` where applicable.
+- [ ] A ticket that changes a browser-runnable surface prefers `playwright-cli`; absence does not stop implementation and permits only a draft PR that records the limitation and exact human browser check, while a non-browser ticket does not gain this limitation.
+- [ ] A clean planned ticket records the `SPEC.md` and `PLAN.md` object identities, baseline `HEAD`, branch, staged/unstaged/untracked paths, and baseline verification failures in `TO-PR.md`, moves to `3.in-progress`, and dispatches phase 1.
+- [ ] A dirty baseline with non-overlapping planned paths leaves baseline bytes and staging unchanged while the phase stages only explicit ticket-owned paths; a planned or observed overlap blocks before commit and names the path.
+- [ ] Each phase uses a fresh implementation agent, bounded to one phase, establishes pre-change evidence, records exact checks and runtime evidence, validates metadata, inspects the staged diff, and creates one append-only commit only after verification passes.
+- [ ] Each phase that changes browser behavior starts the planned runtime and uses `playwright-cli` when available against the actual application to exercise the affected navigation, interaction, and visible result; exact commands, URL, and observations are durable.
+- [ ] An observed browser failure returns the failed step, visible state, console errors, relevant request failures, and artifacts to the retained phase agent for a targeted fix under the existing three-attempt repair ceiling; unresolved failure blocks the phase commit.
+- [ ] A failed check receives no more than three repair attempts; repeated diagnosis, weakened checks, missing runtime evidence, scope expansion, or unsafe Git state enters `blocked` without a phase commit.
+- [ ] An interrupted run resumes from the durable phase ledger and unchanged input identities without repeating committed phases, rewriting history, or creating duplicate commits.
+- [ ] Final verification compares normalized failures with the baseline, discloses unchanged unrelated failures, and blocks new or changed failures.
+- [ ] Final verification independently repeats the complete browser acceptance flow with `playwright-cli` when available; it does not rely only on phase-agent evidence, and observed browser failures receive bounded fresh-agent repair plus independent rerun before unresolved failure blocks pull-request creation.
+- [ ] Missing `playwright-cli` or an unavailable application runtime is recorded as unavailable evidence, not failed behavior, and permits only a draft PR with the exact human verification action.
+- [ ] The aggregate diff is reviewed by a fresh read-only reviewer; required findings receive one fresh repair pass with append-only commits, full re-verification, and one fresh re-review; remaining required findings block.
+- [ ] A fully verified run performs a normal non-force push and creates a ready-for-review PR; unavailable required runtime checks permit only a draft PR listing every limitation and human action.
+- [ ] A push rejection, branch divergence, changed approved input, ambiguous ownership, or interrupted delivery persists `blocked` and never triggers stash, discard, reset, rebase, force-push, or automatic conflict resolution.
+- [ ] After PR creation, push result, PR URL, delivery kind, completion metadata, lifecycle movement, and validator evidence are durable; resume reuses the recorded PR and records `delivered-to-review` only after validation.
+- [ ] Deterministic cases use temporary local directories and never create temporary GitHub repositories; host-dependent fresh-agent and PR evidence is labeled manual-only when unavailable.
+
 ## Archival
 
 - [ ] `wf archive <change>` reads all source artifacts and repository evidence, distinguishes planned from delivered behavior, and proposes exactly one `SUMMARY.md` under `YYYY-MM-DD-<original-change-slug>`.

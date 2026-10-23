@@ -11,7 +11,7 @@ License: MIT
 
 workflow-agent is an Agent Skill (installed via `npx skills add zetdotcom/workflow-agent --skill wf`). It gives an AI coding agent structured project management: single-PR features and multi-ticket epics through one `wf` entry point.
 
-Lifecycle: new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> archive, with optional ticket specification, plan-review, and impl-review steps. Any change may be archived with an explicit terminal outcome.
+Lifecycle: new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> archive, with optional ticket specification, plan-review, impl-review, and autonomous `to-pr` delivery after planning. Any change may be archived with an explicit terminal outcome.
 
 ## Commands
 
@@ -24,11 +24,14 @@ Lifecycle: new -> discover -> breakdown -> specify? -> plan -> implement -> comp
 - `wf plan-review <change> <ticket>` — optional plan review before coding
 - `wf implement <change> <ticket> [phase N]` — execute and verify one implementation phase at a time; results logged in PROGRESS.md
 - `wf impl-review <change> <ticket>` — optional review of code against plan and acceptance criteria
+- `wf to-pr <change> <ticket>` — optional autonomous path for an approved plan; requires fresh-agent and pull-request host capabilities, records TO-PR.md, independently reviews, and stops at delivered-to-review
 - `wf complete <change> <ticket>` — verify readiness, move ticket to done
 - `wf archive <change>` — preview and synthesize one dated SUMMARY.md, then remove the active workspace after explicit confirmation
 - `wf status [change] [ticket]` — scoped active progress, or archived outcome lookup when explicitly requested or no active match exists
 
 Ticket-scoped commands accept change IDs, ticket IDs, work item IDs, or slug fragments. They search `.workflow/changes/` file/folder names first, then file contents when needed. Unique ID prefix such as `PYE-1123` addresses change `PYE-1123-auth-refactor`; unique work item ID such as `PYE-11391` can address one ticket directly. Example: `wf implement PYE-1123 001 phase 3`.
+
+`wf to-pr` preserves unrelated dirty work, blocks path overlap, uses append-only phase and repair commits, never force-pushes or resolves conflicts automatically, and creates a draft pull request when required runtime checks are unavailable. Browser-runnable changes prefer `playwright-cli`: affected phases exercise the changed flow against the actual application, final verification independently repeats the complete acceptance flow, and exact commands, URL, and observations are recorded in `TO-PR.md`. Observed browser failures enter bounded repair and block pull-request creation if unresolved. Missing Playwright or an unavailable runtime permits only a draft with explicit human verification. Pull-request creation does not imply CI success, merge, or deployment.
 
 ## Optional worktrees
 

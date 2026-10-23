@@ -21,6 +21,7 @@ wf plan PYE-1123 001
 wf plan-review PYE-1123 001
 wf implement PYE-1123 001 phase 1
 wf impl-review PYE-1123 001
+wf to-pr PYE-1123 001
 wf complete PYE-1123 001
 wf archive PYE-1123
 wf status archived
@@ -84,6 +85,8 @@ Ticket-scoped commands accept change IDs, ticket IDs, work item IDs, or slug fra
 
 Implementation plans are comprehensive and divided into independently verifiable vertical behavior slices. `PLAN.md` is implementation source of truth. `PLAN-BRIEF.md` gives humans a concise explanation of main changes, architecture/data flow, decisions, risks, rollout, testing, and review questions. Implementation records failing-before evidence when meaningful, focused checks, and a direct runtime smoke result for runnable surfaces. Use `wf implement PYE-1123 001 phase 3` to execute or resume one phase.
 
+After approving a planned `SPEC.md` and `PLAN.md`, `wf to-pr PYE-1123 001` is an optional autonomous path. It requires fresh-agent dispatch and pull-request creation capabilities and prefers `playwright-cli` when the ticket changes a browser-runnable surface. Each affected phase exercises the changed user flow through the actual application, and final verification independently repeats the complete browser acceptance flow. Exact commands, target URL, and observed results are recorded in `TO-PR.md`. Observed browser failures receive bounded implementation repair and independent reruns; unresolved failures block pull-request creation. If Playwright or the application runtime is unavailable, the limitation permits only a qualified draft pull request with explicit human verification. The command also performs independent review, pushes normally, and creates a ready-for-review pull request when fully verified. Existing dirty paths are preserved and overlapping ownership blocks execution. The command stops at `delivered-to-review`; it does not claim CI success, merge, or deployment.
+
 `done` means implementation completed; PR may be ready for review, ready to merge, merged, or receiving feedback. PR feedback can update code and ticket notes while ticket remains done. Explicit reopening moves it back to in-progress.
 
 `wf archive` accepts any active change and records an explicit outcome: `completed`, `cancelled`, `superseded`, or `closed-incomplete`. It synthesizes actual outcome, lasting decisions, current invariants, stable code entry points, limits, verification, and references into one dated `SUMMARY.md`. Before mutation it previews the complete summary and every source path to be removed; cancellation changes nothing. After confirmation, it creates the archive record, removes the active change, and validates metadata. Detailed tickets, plans, reviews, and progress remain available through Git history rather than being copied into the archive.
@@ -102,6 +105,7 @@ Planning searches relevant archive summaries after codebase exploration, using v
 | `wf plan-review` | Optionally review a plan before coding |
 | `wf implement` | Execute and verify one implementation phase at a time |
 | `wf impl-review` | Optionally review code against plan and acceptance criteria |
+| `wf to-pr` | Optionally execute an approved ticket through verification, review, and pull-request delivery |
 | `wf complete` | Mark a verified ticket done |
 | `wf archive` | Distill an active change into a dated historical summary, then remove its active workspace after confirmation |
 | `wf status` | Ask for change, then show scoped progress and next action |
