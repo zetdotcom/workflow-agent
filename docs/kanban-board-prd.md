@@ -1,0 +1,34 @@
+# Local Kanban board for workflow-agent
+
+## Phase 1 goal
+
+A developer can open a read-only Kanban board from the terminal, see where work stands in the current repository, and inspect a change or ticket without hunting through Markdown files. All edits and lifecycle actions happen through the existing workflow.
+
+## Launch and data source
+
+The app reads the local `.workflow` folder in the repository where the developer invokes the command, including uncommitted changes. If the folder is missing, the command exits with a message that identifies the repository it checked and the folder it expected. An empty `.workflow` folder opens an empty board. The command name is an open decision.
+
+## Board
+
+Each card represents one change and shows its name and ticket progress, such as “1 of 3 done.” The app reads each ticket’s stage from its folder and uses those stages to place the change card.
+
+| Column | When a change appears there |
+| --- | --- |
+| Draft | The change has no tickets, or all its tickets are drafts. |
+| To Do | At least one ticket is To Do, and none are In Progress or Done. |
+| In Progress | Any ticket is In Progress, or some tickets are Done and others remain. |
+| Done | The change has at least one ticket and every ticket is Done. |
+
+The board updates automatically when local workflow files change. Finishing the last ticket moves the card to Done and keeps its details open if the developer is reading them.
+
+## Change and ticket details
+
+Opening a change card shows its goal and a list of its tickets with their current stages. Opening a ticket shows its goal, scope, and delivery criteria. The spec, plan, progress log, and reviews each have an expandable section when the corresponding file exists.
+
+## Archive
+
+Archiving a change in `wf` removes its card from the board. A separate Archive page lists archived changes newest first, showing the name, change ID, and archive date. Selecting an entry opens its saved archive summary.
+
+## Success criterion
+
+A developer can leave the board open beside their terminal, run `wf`, see a change advance, and inspect the ticket behind that progress.
