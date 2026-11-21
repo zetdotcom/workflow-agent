@@ -32,3 +32,7 @@ Archiving a change in `wf` removes its card from the board. A separate Archive p
 ## Success criterion
 
 A developer can leave the board open beside their terminal, run `wf`, see a change advance, and inspect the ticket behind that progress.
+
+## Future work
+
+Scheduled ticket runs should work with the terminal and browser closed. If the computer is awake at the scheduled time, the run starts then. If the computer sleeps through that time, the run starts when it wakes. The UI should show the actual start time. Scheduling belongs to a later phase.
