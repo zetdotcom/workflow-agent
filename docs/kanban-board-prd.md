@@ -33,6 +33,13 @@ Archiving a change in `wf` removes its card from the board. A separate Archive p
 
 A developer can leave the board open beside their terminal, run `wf`, see a change advance, and inspect the ticket behind that progress.
 
+## Supported platforms
+
+Phase 1 supports macOS, Windows, and Linux. Verify both behaviors on each platform before release:
+
+- Launching the app from a repository opens that repository’s board in the default browser.
+- With a change’s details open, move its last unfinished ticket into `4.done/`. The card moves to Done automatically and the details stay open.
+
 ## Future work
 
 Scheduled ticket runs should work with the terminal and browser closed. If the computer is awake at the scheduled time, the run starts then. If the computer sleeps through that time, the run starts when it wakes. The UI should show the actual start time. Scheduling belongs to a later phase.
