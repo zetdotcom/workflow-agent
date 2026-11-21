@@ -10,7 +10,7 @@ Use TypeScript for the local Node.js process and the React interface. Node.js re
 
 ## Launch and data source
 
-The app reads the local `.workflow` folder in the repository where the developer invokes the command, including uncommitted changes. If the folder is missing, the command exits with a message that identifies the repository it checked and the folder it expected. An empty `.workflow` folder opens an empty board. The command name is an open decision.
+The `wf-agent` command reads the local `.workflow` folder in the repository where the developer invokes it, including uncommitted changes. If the folder is missing, the command exits with a message that identifies the repository it checked and the folder it expected. An empty `.workflow` folder opens an empty board.
 
 ## Board
 

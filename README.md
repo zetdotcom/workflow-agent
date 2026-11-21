@@ -7,6 +7,22 @@ new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> arc
                                         \-> optional reviews -/
 ```
 
+## Local Kanban board
+
+Open the read-only board from this checkout with Node.js 22.12 or newer:
+
+```sh
+npm ci
+npm run build
+npm start
+```
+
+The CLI opens your default browser and prints a local URL. Keep it running while using `wf` in another terminal. Press Ctrl+C to stop. Use `npm start -- --no-open` to print the URL without launching a browser.
+
+To view another repository with this build, change to the directory that contains its `.workflow` folder and run `node /absolute/path/to/workflow-agent/bin/wf-agent.js`. The current directory selects the repository, including any uncommitted ticket moves.
+
+To run the board checks, install the test browser inside the checkout with `npm run test:browser:install`, then run `npm test`. The tests exercise stage derivation, CLI errors, live moves with details open, and archiving in disposable repositories.
+
 ## Usage
 
 Invoke `wf` without arguments for an interactive menu, use a command directly, or describe what you want in natural language.
