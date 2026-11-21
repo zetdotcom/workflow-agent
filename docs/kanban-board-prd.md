@@ -4,6 +4,10 @@
 
 A developer can open a read-only Kanban board from the terminal, see where work stands in the current repository, and inspect a change or ticket without hunting through Markdown files. All edits and lifecycle actions happen through the existing workflow.
 
+## Phase 1 technology
+
+Use TypeScript for the local Node.js process and the React interface. Node.js reads and watches `.workflow` and derives the board state from the ticket folders. React displays that state and renders the change and ticket details. Revisit the runtime if profiling identifies a bottleneck or a concrete platform requirement calls for a change.
+
 ## Launch and data source
 
 The app reads the local `.workflow` folder in the repository where the developer invokes the command, including uncommitted changes. If the folder is missing, the command exits with a message that identifies the repository it checked and the folder it expected. An empty `.workflow` folder opens an empty board. The command name is an open decision.
