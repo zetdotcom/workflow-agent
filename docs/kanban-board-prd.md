@@ -14,7 +14,7 @@ The `wf-agent` command reads the local `.workflow` folder in the repository wher
 
 ## Board
 
-Each card represents one change and shows its name and ticket progress, such as “1 of 3 done.” The app reads each ticket’s stage from its folder and uses those stages to place the change card.
+The Changes view opens by default. Each card shows the change ID, title, a short goal preview, and ticket progress, such as “1 of 3 done.” The app reads each ticket’s stage from its folder and uses those stages to place the change card.
 
 | Column | When a change appears there |
 | --- | --- |
@@ -23,11 +23,15 @@ Each card represents one change and shows its name and ticket progress, such as 
 | In Progress | Any ticket is In Progress, or some tickets are Done and others remain. |
 | Done | The change has at least one ticket and every ticket is Done. |
 
-The board updates automatically when local workflow files change. Finishing the last ticket moves the card to Done and keeps its details open if the developer is reading them.
+The Changes / Tickets toggle beside the board heading switches to a board of individual tickets from every unarchived change. Both ticket boards place tickets in their actual workflow stages, including Done. Each ticket card shows its number, title, and a parent change ID that links to the scoped board.
+
+The board updates automatically when local workflow files change. Moving a ticket moves its card to the updated stage and keeps its details open.
 
 ## Change and ticket details
 
-Opening a change card shows its goal and a list of its tickets with their current stages. Opening a ticket shows its goal, scope, and delivery criteria. The spec, plan, progress log, and reviews each have an expandable section when the corresponding file exists.
+Opening a change card shows a board of its tickets. The heading shows the change ID and title, with a Back to changes link and a Change details action for the full goal and status. A change without tickets displays an empty board with a “No tickets yet” message.
+
+Opening a ticket shows its goal, scope, and delivery criteria. The spec, plan, progress log, and reviews each have an expandable section when the corresponding file exists. Closing the panel returns to the board it was opened from. Each board view has its own URL and survives a refresh.
 
 ## Archive
 

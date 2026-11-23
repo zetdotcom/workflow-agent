@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { stages, type Board, type Change, type Document, type Stage } from "../server/model";
+import { stages, type Board, type Change, type Document, type Stage, type Ticket } from "../server/model";
 import "./style.css";
 
 const archivePath = "#/archive";
 const boardPath = "#/board";
-const changePath = (id: string) => boardPath + "/" + encodeURIComponent(id);
+const ticketsPath = boardPath + "/tickets";
+const changePath = (id: string) => boardPath + "/changes/" + encodeURIComponent(id);
 const stageIndex = (stage: Stage) => stages.indexOf(stage);
 const changeKey = (id: string) => /^[A-Za-z][A-Za-z0-9]*-\d+(?=-|$)/.exec(id)?.[0] ?? id;
 const ticketKey = (id: string) => id.split("-")[0];
@@ -59,15 +60,48 @@ function StageLabel({ stage }: { stage: Stage }) {
   return <span className={"stage s" + stageIndex(stage)}><i aria-hidden="true" />{stage}</span>;
 }
 
-function Card({ change }: { change: Change }) {
+function ChangeCard({ change }: { change: Change }) {
   const done = change.tickets.filter(ticket => ticket.stage === "Done").length;
   const count = change.tickets.length;
   return <a className="card" href={changePath(change.id)}>
     <div className="card-top"><code>{changeKey(change.id)}</code><span aria-hidden="true">↗</span></div>
     <h3>{change.title}</h3>
+    {change.goal && <p className="goal-preview"><Markdown remarkPlugins={[remarkGfm]} skipHtml
+      allowedElements={[]} unwrapDisallowed>{change.goal}</Markdown></p>}
     <progress aria-label="Completed tickets" max={count || 1} value={done} />
     <small>{done} of {count} done</small>
   </a>;
+}
+
+type PanelLinkHandler = React.MouseEventHandler<HTMLAnchorElement>;
+
+function TicketCard({ change, ticket, scoped, openPanel }: {
+  change: Change; ticket: Ticket; scoped: boolean; openPanel: PanelLinkHandler;
+}) {
+  const parent = changePath(change.id);
+  const ticketBase = scoped ? parent + "/tickets" : ticketsPath + "/" + encodeURIComponent(change.id);
+  return <article className="card ticket-card">
+    <h3><a className="ticket-link" href={ticketBase + "/" + encodeURIComponent(ticket.id)} onClick={openPanel}>
+      <code>{ticketKey(ticket.id)}</code>
+      {ticket.title}
+    </a></h3>
+    <a className="parent-link" href={parent} aria-label={"Parent change " + changeKey(change.id)}>
+      <code>{changeKey(change.id)}</code>
+    </a>
+  </article>;
+}
+
+function Lanes<Item extends { stage: Stage }>({ items, renderCard, emptyLabel }: {
+  items: Item[]; renderCard: (item: Item) => React.ReactNode; emptyLabel: string;
+}) {
+  return <div className="lanes">{stages.map(stage => {
+    const laneItems = items.filter(item => item.stage === stage);
+    return <section className={"lane s" + stageIndex(stage)} key={stage} aria-label={stage}>
+      <h2><StageLabel stage={stage} /><span className="count">{laneItems.length}</span></h2>
+      {laneItems.map(renderCard)}
+      {!laneItems.length && <p className="empty">{emptyLabel}</p>}
+    </section>;
+  })}</div>;
 }
 
 type PanelProps = { title: string; id: string; close: string; children: React.ReactNode };
@@ -78,11 +112,17 @@ function Panel({ title, id, close, children }: PanelProps) {
     dialog.showModal();
     return () => dialog.close();
   }, []);
-  useEffect(() => { ref.current?.querySelector<HTMLElement>(".sheet-body")?.scrollTo(0, 0); }, [id]);
-  return <dialog ref={ref} aria-labelledby="detail-title" onCancel={event => { event.preventDefault(); location.hash = close; }}
-    onClick={event => { if (event.target === ref.current) location.hash = close; }}>
+  function dismiss() {
+    if (history.state?.panelFrom === close) {
+      history.back();
+    } else {
+      location.replace(close);
+    }
+  }
+  return <dialog ref={ref} aria-labelledby="detail-title" onCancel={event => { event.preventDefault(); dismiss(); }}
+    onClick={event => { if (event.target === ref.current) dismiss(); }}>
     <div className="sheet">
-      <header className="sheet-bar"><code>{id}</code><a href={close} aria-label="Close details" className="close">×</a></header>
+      <header className="sheet-bar"><code>{id}</code><button type="button" aria-label="Close details" className="close" onClick={dismiss}>×</button></header>
       <div className="sheet-body"><h2 id="detail-title">{title}</h2>{children}</div>
     </div>
   </dialog>;
@@ -96,15 +136,32 @@ function App() {
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
-  const [, page, selected, sub] = hash.split("/");
+  const [, page, view, selected, action, scopedTicketId] = hash.split("/");
   const archive = page === "archive";
-  const change = !archive && board?.changes.find(item => encodeURIComponent(item.id) === selected);
-  const ticket = change && change.tickets.find(item => encodeURIComponent(item.id) === sub);
-  const record = archive && board?.archive.find(item => encodeURIComponent(item.folder) === selected);
-  const count = archive ? board?.archive.length : board?.changes.length;
+  const scoped = page === "board" && view === "changes" && Boolean(selected);
+  const tickets = page === "board" && view === "tickets";
+  const showTickets = scoped || tickets;
+  const change = showTickets && board?.changes.find(item => encodeURIComponent(item.id) === selected);
+  const ticketId = tickets ? action : action === "tickets" ? scopedTicketId : undefined;
+  const ticket = change && change.tickets.find(item => encodeURIComponent(item.id) === ticketId);
+  const record = archive && board?.archive.find(item => encodeURIComponent(item.folder) === view);
+  const ticketChanges = scoped ? (change ? [change] : []) : board?.changes ?? [];
+  const ticketCards = showTickets ? ticketChanges.flatMap(parent =>
+    parent.tickets.map(item => ({ change: parent, ticket: item, stage: item.stage }))) : [];
+  const count = archive ? board?.archive.length : showTickets ? ticketCards.length : board?.changes.length;
+  const itemName = showTickets ? "ticket" : "change";
+  const title = archive ? "Archive" : scoped && change ? change.title : "Change board";
+
+  function openPanel(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    history.pushState({ panelFrom: location.hash }, "", event.currentTarget.href);
+    setHash(location.hash);
+  }
+
   useEffect(() => {
-    document.title = (archive ? "Archive" : "Change board") + (board ? " · " + board.repository : "") + " · wf-agent";
-  }, [archive, board?.repository]);
+    document.title = title + (board ? " · " + board.repository : "") + " · wf-agent";
+  }, [title, board?.repository]);
 
   return <>
     <header className="topbar">
@@ -113,47 +170,53 @@ function App() {
       <nav aria-label="Workspace"><a href={boardPath} aria-current={!archive ? "page" : undefined}>Board</a><a href={archivePath} aria-current={archive ? "page" : undefined}>Archive</a></nav>
     </header>
     <main>
+      {scoped && <a className="board-back" href={boardPath}>← Back to changes</a>}
       <div className="page-heading"><div>
-        {count !== undefined && <p className="kicker">{count} {archive ? "archived" : "active"} {count === 1 ? "change" : "changes"}</p>}
-        <h1>{archive ? "Archive" : "Change board"}</h1></div>
-        <div className="connection" role="status"><i className={online && !error ? "live" : ""} />{error ? "Read error" : online ? "Live updates" : "Connecting…"}</div>
+        {scoped && change ? <p className="kicker">{changeKey(change.id)} · {count} {count === 1 ? "ticket" : "tickets"}</p>
+          : board && !scoped && <p className="kicker">{count} {archive ? "archived " : tickets ? "" : "active "}{itemName}{count === 1 ? "" : "s"}</p>}
+        <h1>{title}</h1></div>
+        <div className="heading-actions">
+          {!archive && !scoped && <nav className="view-toggle" aria-label="Board view">
+            <a href={boardPath} aria-current={!tickets ? "page" : undefined}>Changes</a>
+            <a href={ticketsPath} aria-current={tickets ? "page" : undefined}>Tickets</a>
+          </nav>}
+          {scoped && change && <a className="change-details" href={changePath(change.id) + "/details"} onClick={openPanel}>Change details</a>}
+          <div className="connection" role="status"><i className={online && !error ? "live" : ""} />{error ? "Read error" : online ? "Live updates" : "Connecting…"}</div>
+        </div>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       {!board && !error && <p>Reading workflow…</p>}
-      {board && !archive && <div className="lanes">{stages.map(stage => {
-        const items = board.changes.filter(item => item.stage === stage);
-        return <section className={"lane s" + stageIndex(stage)} key={stage} aria-label={stage}>
-          <h2><StageLabel stage={stage} /><span className="count">{items.length}</span></h2>
-          {items.map(item => <Card change={item} key={item.id} />)}
-          {!items.length && <p className="empty">No changes</p>}
-        </section>;
-      })}</div>}
+      {board && !archive && !showTickets && <Lanes items={board.changes} emptyLabel="No changes"
+        renderCard={item => <ChangeCard key={item.id} change={item} />} />}
+      {board && showTickets && (!scoped || change) && <>
+        {scoped && !ticketCards.length && <p className="board-message">No tickets yet.</p>}
+        {ticketId && !ticket && <p className="board-message">This ticket is no longer on the board.</p>}
+        <Lanes items={ticketCards} emptyLabel="No tickets"
+          renderCard={item => <TicketCard key={JSON.stringify([item.change.id, item.ticket.id])}
+            change={item.change} ticket={item.ticket} scoped={scoped} openPanel={openPanel} />} />
+      </>}
+      {board && scoped && !change && <p className="board-message">This change is no longer on the board.</p>}
       {board && archive && <section className="archive-list" aria-label="Archived changes">
-        {board.archive.map(item => <a key={item.folder} href={archivePath + "/" + encodeURIComponent(item.folder)}>
+        {board.archive.map(item => <a key={item.folder} href={archivePath + "/" + encodeURIComponent(item.folder)} onClick={openPanel}>
           <div><code>{changeKey(item.id)}</code><h3>{item.title}</h3></div>
           <span className="outcome">{item.outcome}</span><time>{item.date}</time><span aria-hidden="true">↗</span>
         </a>)}
         {!board.archive.length && <p className="empty">No archived changes</p>}
       </section>}
     </main>
-    {change && !ticket && <Panel title={change.title} id={changeKey(change.id)} close={boardPath}>
+    {scoped && change && action === "details" && <Panel key={hash} title={change.title} id={changeKey(change.id)} close={changePath(change.id)}>
       <StageLabel stage={change.stage} />
       {change.goal && <section><h3>Goal</h3><RichText text={change.goal} /></section>}
-      <section><h3>Tickets <small>{change.tickets.length}</small></h3>
-        {change.tickets.map(item => <a className="ticket-row" key={item.id} href={changePath(change.id) + "/" + encodeURIComponent(item.id)}>
-          <code>{ticketKey(item.id)}</code><strong>{item.title}</strong><StageLabel stage={item.stage} />
-        </a>)}
-        {!change.tickets.length && <p>No tickets yet.</p>}
-      </section>
     </Panel>}
-    {change && ticket && <Panel title={ticket.title} id={changeKey(change.id) + " / " + ticketKey(ticket.id)} close={boardPath}>
-      <a className="back" href={changePath(change.id)}>← {change.title}</a><StageLabel stage={ticket.stage} />
+    {change && ticket && <Panel key={hash} title={ticket.title} id={changeKey(change.id) + " / " + ticketKey(ticket.id)}
+      close={scoped ? changePath(change.id) : ticketsPath}>
+      <StageLabel stage={ticket.stage} />
       {([["Goal", ticket.goal], ["Scope", ticket.scope], ["Delivery criteria", ticket.criteria]] as const).map(([label, value]) =>
         value && <section key={label}><h3>{label}</h3><RichText text={value} /></section>)}
       <section><h3>Documents</h3>{ticket.documents.map(doc =>
-        <TicketDocument key={ticket.id + doc.label} document={doc} />)}</section>
+        <TicketDocument key={doc.label} document={doc} />)}</section>
     </Panel>}
-    {record && <Panel title={record.title} id={changeKey(record.id)} close={archivePath}>
+    {record && <Panel key={hash} title={record.title} id={changeKey(record.id)} close={archivePath}>
       <p className="archive-meta">{record.date} · {record.outcome}</p>
       <RichText text={record.summary.replace(/^# [^\n]+\n?/, "")} />
     </Panel>}
