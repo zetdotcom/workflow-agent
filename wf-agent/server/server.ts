@@ -1,25 +1,36 @@
+import { watch } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { once } from "node:events";
-import { watch } from "chokidar";
+import { watch as watchPaths } from "chokidar";
 import { checkWorkflow, readBoard } from "./repository.js";
 
 const web = new URL("../web/", import.meta.url);
 const types: Record<string, string> = { html: "text/html; charset=utf-8", css: "text/css", js: "text/javascript" };
 
-export async function startServer(repository: string) {
-  const root = await checkWorkflow(repository);
-  const clients = new Set<ServerResponse>();
-  const watcher = watch(root, { ignoreInitial: true, followSymlinks: false });
+async function watchWorkflow(root: string, onChange: () => void) {
+  if (process.platform === "win32") {
+    // A single root watch lets Windows rename workflow directories with watched descendants.
+    const watcher = watch(root, { recursive: true }, onChange);
+    return () => watcher.close();
+  }
+
+  const watcher = watchPaths(root, { ignoreInitial: true, followSymlinks: false });
   try {
     await once(watcher, "ready");
   } catch (error) {
     await watcher.close();
     throw error;
   }
+  watcher.on("all", onChange);
+  return () => watcher.close();
+}
 
-  let timer: ReturnType<typeof setTimeout>;
-  watcher.on("all", () => {
+export async function startServer(repository: string) {
+  const root = await checkWorkflow(repository);
+  const clients = new Set<ServerResponse>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stopWatching = await watchWorkflow(root, () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
       for (const client of clients) client.write("event: update\ndata: changed\n\n");
@@ -64,7 +75,8 @@ export async function startServer(repository: string) {
   try {
     await once(server, "listening");
   } catch (error) {
-    await watcher.close();
+    clearTimeout(timer);
+    await stopWatching();
     throw error;
   }
   const address = server.address();
@@ -75,7 +87,7 @@ export async function startServer(repository: string) {
       clearTimeout(timer);
       for (const client of clients) client.end();
       server.closeAllConnections();
-      await Promise.all([watcher.close(), new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))]);
+      await Promise.all([stopWatching(), new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))]);
     }
   };
 }
