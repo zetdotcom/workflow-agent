@@ -15,8 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p board/web && tsc -p board/server && vite build board/web --outDir ../../dist/web --emptyOutDir",
-    "start": "node bin/wf-agent.js",
+    "build": "tsc -p web && tsc -p server && vite build web --outDir ../dist/web --emptyOutDir",
     "test": "npm run build && node scripts/board-test.mjs",
     "test:browser:install": "node scripts/board-test.mjs install",
     "prepack": "npm run build"

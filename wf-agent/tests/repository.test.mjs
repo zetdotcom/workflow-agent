@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rename, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readBoard } from "../../dist/server/repository.js";
+import { readBoard } from "../dist/server/repository.js";
 import { fixture } from "./fixture.mjs";
 
 test("archive order follows the recorded date across outcomes", async t => {
@@ -22,7 +22,7 @@ test("archive order follows the recorded date across outcomes", async t => {
 
 test("missing workflow explains the launch directory and exits before serving", async t => {
   const cwd = await fixture(t);
-  const binary = fileURLToPath(new URL("../../bin/wf-agent.js", import.meta.url));
+  const binary = fileURLToPath(new URL("../bin/wf-agent.js", import.meta.url));
   const result = spawnSync(process.execPath, [binary], { cwd, encoding: "utf8", timeout: 5000 });
   assert.equal(result.status, 1);
   assert.ok(result.stderr.includes(cwd));

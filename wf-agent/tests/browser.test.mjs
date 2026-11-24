@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
-import { startServer } from "../../dist/server/server.js";
+import { startServer } from "../dist/server/server.js";
 import { fixture } from "./fixture.mjs";
 
 test("switches between changes and tickets, drills into a change, and tracks live moves", async t => {

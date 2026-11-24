@@ -7,21 +7,8 @@ new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> arc
                                         \-> optional reviews -/
 ```
 
-## Local Kanban board
-
-Open the read-only board from this checkout with Node.js 22.12 or newer:
-
-```sh
-npm ci
-npm run build
-npm start
-```
-
-The CLI opens your default browser and prints a local URL. Keep it running while using `wf` in another terminal. Press Ctrl+C to stop. Use `npm start -- --no-open` to print the URL without launching a browser.
-
-To view another repository with this build, change to the directory that contains its `.workflow` folder and run `node /absolute/path/to/workflow-agent/bin/wf-agent.js`. The current directory selects the repository, including any uncommitted ticket moves.
-
-To run the board checks, install the test browser inside the checkout with `npm run test:browser:install`, then run `npm test`. The tests exercise stage derivation, CLI errors, live moves with details open, and archiving in disposable repositories.
+- [Install the `wf` skill](#install-the-wf-skill) from `skills/wf/` to manage tickets with your coding agent.
+- [Run the `wf-agent` board](wf-agent/README.md) from the app package in `wf-agent/` to view a repository’s tickets in your browser.
 
 ## Usage
 
@@ -126,7 +113,9 @@ Planning searches relevant archive summaries after codebase exploration, using v
 | `wf archive` | Distill an active change into a dated historical summary, then remove its active workspace after confirmation |
 | `wf status` | Ask for change, then show scoped progress and next action |
 
-## Install
+## Install the `wf` skill
+
+Both install methods use `skills/wf/`. The browser board is an optional app with its own [npm setup](wf-agent/README.md).
 
 ### Skills CLI
 
