@@ -29,4 +29,4 @@ npm run test:browser:install --prefix wf-agent
 npm test --prefix wf-agent
 ```
 
-The suite checks stage derivation, CLI errors, live ticket moves with details open, and archiving in disposable repositories. See the [board requirements](docs/kanban-board-prd.md) for supported platforms and release checks.
+The Playwright scenarios launch `wf-agent --no-open` from disposable repositories and drive the built app in Chromium. They cover empty and populated boards, navigation and ticket details, live updates with details open, archive browsing, and recovery after a workflow file is repaired. The repository tests also check stage derivation and CLI errors. See the [board requirements](docs/kanban-board-prd.md) for supported platforms and release checks.
