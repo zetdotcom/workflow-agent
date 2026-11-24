@@ -23,7 +23,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .topbar nav { display: flex; gap: 4px; margin-left: auto; }
 .topbar nav a { font-weight: 550; font-size: 14px; padding: 8px 15px; border-radius: 6px; }
 .topbar nav a:hover, .topbar nav a[aria-current] { background: #3a594a; }
-main { max-width: 1800px; margin: 0 auto; padding: clamp(30px, 5vw, 72px) clamp(18px, 4vw, 70px); }
+main { max-width: 1800px; margin: 0 auto; padding: clamp(30px, 5vw, 72px) clamp(18px, 4vw, 70px) 125px; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
 .page-heading h1 { overflow-wrap: anywhere; }
 .heading-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }

@@ -1,4 +1,5 @@
 export const stages = ["Draft", "To Do", "In Progress", "Done"] as const;
+export const stageFolders = ["1.draft", "2.todo", "3.in-progress", "4.done"] as const;
 export type Stage = typeof stages[number];
 
 export interface Document {
@@ -37,4 +38,9 @@ export interface Board {
   repository: string;
   changes: Change[];
   archive: ArchivedChange[];
+}
+
+export function contextPath(change: Change, ticket?: Ticket) {
+  const base = ".workflow/changes/" + change.id;
+  return ticket ? [base, stageFolders[stages.indexOf(ticket.stage)], ticket.id, "TICKET.md"].join("/") : base + "/CONTEXT.md";
 }

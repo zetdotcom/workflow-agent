@@ -1,9 +1,8 @@
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { parse } from "yaml";
-import { stages, type ArchivedChange, type Board, type Change, type Stage, type Ticket } from "./model.js";
+import { stageFolders, stages, type ArchivedChange, type Board, type Change, type Stage, type Ticket } from "./model.js";
 
-const stageFolders = ["1.draft", "2.todo", "3.in-progress", "4.done"];
 const documents = [
   ["SPEC.md", "Specification"], ["PLAN-BRIEF.md", "Plan brief"], ["PLAN.md", "Plan"],
   ["PROGRESS.md", "Progress"], ["REVIEWS.md", "Reviews"], ["TO-PR.md", "PR delivery"]

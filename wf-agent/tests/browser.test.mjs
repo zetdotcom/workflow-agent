@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { fixture } from "./fixture.mjs";
+import { commitWorkflowFixture, fixture, peerEnvironment } from "./fixture.mjs";
 
 const launcher = fileURLToPath(new URL("../bin/wf-agent.js", import.meta.url));
 let browser;
@@ -15,10 +15,11 @@ let browser;
 before(async () => { browser = await chromium.launch(); });
 after(async () => { await browser?.close(); });
 
-async function withBoard(repository, exercise) {
+async function withBoard(repository, exercise, env = {}) {
   const app = spawn(process.execPath, [launcher, "--no-open"], {
     cwd: repository,
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, ...env },
   });
   const closed = once(app, "close");
   const output = createInterface({ input: app.stdout });
@@ -294,4 +295,56 @@ test("recovers after an unreadable workflow file is repaired", async t => {
     await page.getByRole("status").getByText("Live updates").waitFor();
     await lane(page, "Draft").getByRole("link").filter({ hasText: "Checkout" }).waitFor();
   });
+});
+
+test("uses the bottom composer from ticket details, mentions repository files, and reopens independent chats", async t => {
+  const repo = await fixture(t);
+  const env = await peerEnvironment(t);
+  const change = await createChange(repo, "SHOP-8-checkout", "Checkout");
+  const ticket = await createTicket(change, "2.todo", "001-receipts", "Receipts");
+  for (const name of ["SPEC.md", "PLAN.md", "PLAN-BRIEF.md"]) await writeFile(join(ticket, name), "# Receipts\n\n" + name);
+  commitWorkflowFixture(repo);
+  await writeFile(join(repo, "orders.js"), "export const orders = [];");
+  await withBoard(repo, async page => {
+    await link(page, "Tickets").click();
+    await link(page, "001 Receipts").click();
+    const dock = page.getByRole("region", { name: "Codex chat" });
+    const input = dock.getByRole("textbox", { name: "Message Codex" });
+    await input.fill("@");
+    const first = dock.getByRole("option").first();
+    await first.getByText("Current selection").waitFor();
+    assert.match(await first.textContent(), /001-receipts\/TICKET\.md/);
+    await input.press("Tab");
+    await dock.getByRole("button", { name: /Remove .*TICKET\.md/ }).waitFor();
+    await input.fill("Explain @orders");
+    await dock.getByRole("option", { name: /orders\.js/ }).click();
+    await dock.getByRole("button", { name: "Send message" }).click();
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await dock.getByText("Decision summary", { exact: true }).click();
+    await dock.getByText("Checked the requested ticket.", { exact: true }).waitFor();
+    const original = await dock.getByRole("combobox", { name: "Saved chats" }).inputValue();
+    await closeDetails(page);
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await dock.getByRole("button", { name: "New chat", exact: true }).click();
+    await dock.getByText("The plan explains the ticket approach.").waitFor({ state: "detached" });
+    await dock.getByRole("combobox", { name: "Saved chats" }).selectOption(original);
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await input.fill("Status for SHOP-8 001");
+    await dock.getByRole("button", { name: "Send message" }).click();
+    await dock.getByRole("button", { name: "Authorize and run" }).waitFor();
+    await dock.getByRole("button", { name: "Decline", exact: true }).click();
+    await dock.getByText("Declined", { exact: true }).waitFor();
+    await input.fill("Propose the PR");
+    await dock.getByRole("button", { name: "Send message" }).click();
+    await dock.getByRole("button", { name: "Authorize and run" }).click();
+    await dock.getByText("PR published", { exact: true }).waitFor();
+    assert.equal(await dock.getByRole("link", { name: "https://example.test/pull/17" }).getAttribute("href"), "https://example.test/pull/17");
+    await dock.getByText("Turn diff", { exact: true }).click();
+    await dock.getByText("+export const calendar = true;", { exact: true }).waitFor();
+  }, env);
+  await withBoard(repo, async page => {
+    await page.getByRole("button", { name: "Show or hide saved chats" }).click();
+    await page.getByText("Declined", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("combobox", { name: "Saved chats" }).locator("option").count(), 2);
+  }, env);
 });
