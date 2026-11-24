@@ -161,6 +161,7 @@ skills/wf/
     ├── plan-review.md
     ├── implement.md
     ├── impl-review.md
+    ├── to-pr.md
     ├── complete.md
     ├── status.md
     ├── archive.md
@@ -172,7 +173,8 @@ skills/wf/
     ├── plan-template.md
     ├── plan-brief-template.md
     ├── progress-template.md
-    └── reviews-template.md
+    ├── reviews-template.md
+    └── to-pr-template.md
 ```
 
 `SKILL.md` owns routing and shared workflow contracts. Command references own operation-specific instructions; templates own generated file structure. The bundled validator provides a deterministic metadata feedback loop. All references resolve one level from the skill entry point.
