@@ -332,8 +332,8 @@ test("uses the bottom composer from ticket details, mentions repository files, a
     await input.fill("Status for SHOP-8 001");
     await dock.getByRole("button", { name: "Send message" }).click();
     await dock.getByRole("button", { name: "Authorize and run" }).waitFor();
-    const groups = dock.getByRole("group", { name: "tool calls", exact: true });
-    const statusGroup = groups.filter({ hasText: "wf_status · completed" });
+    const singleCallGroups = dock.getByRole("group", { name: "tool calls (1)", exact: true });
+    const statusGroup = singleCallGroups.filter({ hasText: "wf_status · completed" });
     const expandStatus = statusGroup.getByRole("button", { name: "Expand tool calls", expanded: false });
     const collapseStatus = statusGroup.getByRole("button", { name: "Collapse tool calls", expanded: true });
     const statusCall = statusGroup.getByText("wf_status · completed", { exact: true });
@@ -351,7 +351,7 @@ test("uses the bottom composer from ticket details, mentions repository files, a
     await dock.getByText("Declined", { exact: true }).waitFor();
     await input.fill("Propose the PR");
     await dock.getByRole("button", { name: "Send message" }).click();
-    const prGroup = groups.filter({ hasText: "wf_to_pr · completed" });
+    const prGroup = singleCallGroups.filter({ hasText: "wf_to_pr · completed" });
     const expandPr = prGroup.getByRole("button", { name: "Expand tool calls", expanded: false });
     await expandPr.waitFor();
     await argumentsAndResult.waitFor();
@@ -369,7 +369,8 @@ test("uses the bottom composer from ticket details, mentions repository files, a
     assert.equal(await dock.getByRole("link", { name: "https://example.test/pull/17" }).getAttribute("href"), "https://example.test/pull/17");
     await dock.getByText("Turn diff", { exact: true }).click();
     await dock.getByText("+export const calendar = true;", { exact: true }).waitFor();
-    const workflowGroup = groups.filter({ hasText: "Running wf to-pr " });
+    const workflowGroup = dock.getByRole("group", { name: "tool calls (2)", exact: true }).filter({ hasText: "Running wf to-pr " });
+    await workflowGroup.getByText("tool calls (2)", { exact: true }).waitFor();
     await workflowGroup.getByRole("button", { name: "Expand tool calls" }).click();
     await workflowGroup.getByText("Command · completed", { exact: true }).click();
     await workflowGroup.getByText(/Checks passed/).waitFor();

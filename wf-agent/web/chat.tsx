@@ -31,10 +31,11 @@ function Entry({ entry }: { entry: ChatEntry }) {
 function ToolCalls({ calls }: { calls: ChatEntry[] }) {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
+  const labelId = listId + "-label";
   const action = expanded ? "Collapse" : "Expand";
-  return <div className="chat-entry chat-tools" role="group" aria-label="tool calls">
+  return <div className="chat-entry chat-tools" role="group" aria-labelledby={labelId}>
     <div className="chat-tools-head">
-      <span>tool calls</span>
+      <span id={labelId}>tool calls ({calls.length})</span>
       <button type="button" aria-label={action + " tool calls"} aria-expanded={expanded} aria-controls={listId}
         onClick={() => setExpanded(open => !open)}>{action}</button>
     </div>
