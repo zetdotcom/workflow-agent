@@ -4,6 +4,8 @@ import type { BoardSelection, ChatEntry, ChatSummary, ChatView, HostPrompt } fro
 import { RichText } from "./rich-text";
 import "./chat.css";
 
+const toolCallsPreference = "wf-agent.showToolCalls";
+
 async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch("/api/" + path, body === undefined ? { signal } : {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal
@@ -12,10 +14,11 @@ async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promi
   return response.json();
 }
 
-function Entry({ entry }: { entry: ChatEntry }) {
+function Entry({ entry, showToolCalls }: { entry: ChatEntry; showToolCalls: boolean }) {
   const [open, setOpen] = useState(false);
   if (entry.kind === "tool" || entry.kind === "diff" || entry.kind === "decision") {
-    return <details className={"chat-entry activity " + entry.kind} onToggle={event => setOpen(event.currentTarget.open)}>
+    return <details className={"chat-entry activity " + entry.kind} hidden={entry.kind === "tool" && !showToolCalls}
+      onToggle={event => setOpen(event.currentTarget.open)}>
       <summary>{entry.title}</summary>{open && <pre>{entry.kind === "diff" ? entry.text.split("\n").map((line, index) =>
         <span key={index} className={line.startsWith("+") ? "addition" : line.startsWith("-") ? "deletion" : undefined}>{line}{"\n"}</span>
       ) : entry.text}</pre>}
@@ -46,6 +49,7 @@ type Props = { host: HTMLElement | null; revision: number; selectedPath: string;
 export function ChatDock({ host, revision, selectedPath, selection }: Props) {
   const [active, setActive] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showToolCalls, setShowToolCalls] = useState(false);
   const [chats, setChats] = useState<ChatSummary[]>();
   const [id, setId] = useState("");
   const [view, setView] = useState<ChatView>();
@@ -65,6 +69,17 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
   const proposal = current?.proposal;
 
   useEffect(() => {
+    try { setShowToolCalls(localStorage.getItem(toolCallsPreference) === "true"); }
+    catch { setError("Could not load your tool call display preference."); }
+  }, []);
+
+  function changeToolVisibility(visible: boolean) {
+    setShowToolCalls(visible);
+    try { localStorage.setItem(toolCallsPreference, String(visible)); }
+    catch { setError("Could not save your tool call display preference."); }
+  }
+
+  useEffect(() => {
     if (!active) return;
     const abort = new AbortController();
     void (async () => {
@@ -79,7 +94,7 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
 
   useEffect(() => {
     if (follow.current && history.current) history.current.scrollTop = history.current.scrollHeight;
-  }, [current, expanded]);
+  }, [current, expanded, showToolCalls]);
   useEffect(() => {
     const element = history.current;
     if (!element) return;
@@ -154,6 +169,10 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
           {!chats?.length && <option value="">New chat</option>}
           {chats?.map(chat => <option key={chat.id} value={chat.id}>{chat.title}</option>)}
         </select>
+        <label className="chat-tool-toggle">
+          <input type="checkbox" checked={showToolCalls} onChange={event => changeToolVisibility(event.target.checked)} />
+          Show tool calls
+        </label>
         <button type="button" disabled={busy} onClick={() => void perform(async () => {
           await createChat(); setText(""); setFiles([]); setMention(undefined); input.current?.focus();
         })}>New chat</button>
@@ -163,7 +182,7 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
         const el = event.currentTarget;
         follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
       }}>
-        {current?.entries.map(entry => <Entry key={entry.id} entry={entry} />)}
+        {current?.entries.map(entry => <Entry key={entry.id} entry={entry} showToolCalls={showToolCalls} />)}
         {current?.running && <p className="chat-working">Codex is working…</p>}
         {proposal && <div className="chat-approval"><strong>Authorize workflow</strong>
           <code>{["wf", proposal.command, proposal.change, proposal.ticket].filter(Boolean).join(" ")}</code>

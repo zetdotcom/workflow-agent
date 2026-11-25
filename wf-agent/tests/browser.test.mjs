@@ -332,6 +332,26 @@ test("uses the bottom composer from ticket details, mentions repository files, a
     await input.fill("Status for SHOP-8 001");
     await dock.getByRole("button", { name: "Send message" }).click();
     await dock.getByRole("button", { name: "Authorize and run" }).waitFor();
+    const showTools = dock.getByRole("checkbox", { name: "Show tool calls" });
+    const statusCall = dock.locator("details").filter({ has: page.getByText("wf_status · completed", { exact: true }) });
+    await statusCall.waitFor({ state: "attached" });
+    assert.equal(await showTools.isChecked(), false);
+    assert.equal(await statusCall.isVisible(), false);
+    await showTools.check();
+    await statusCall.locator("summary").click();
+    const argumentsAndResult = statusCall.locator("pre");
+    assert.match(await argumentsAndResult.innerText(), /"ticket":\s*"001"/);
+    await showTools.uncheck();
+    await argumentsAndResult.waitFor({ state: "hidden" });
+    await showTools.check();
+    await argumentsAndResult.waitFor();
+
+    await page.reload();
+    await dock.getByRole("button", { name: "Show or hide saved chats" }).click();
+    await statusCall.waitFor();
+    assert.equal(await showTools.isChecked(), true);
+    await showTools.uncheck();
+    await statusCall.waitFor({ state: "hidden" });
     await dock.getByRole("button", { name: "Decline", exact: true }).click();
     await dock.getByText("Declined", { exact: true }).waitFor();
     await input.fill("Propose the PR");
