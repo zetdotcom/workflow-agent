@@ -13,11 +13,11 @@ updated: 2026-11-26
 
 **Acceptance Criteria:**
 
-- [ ] Opening an unconfigured board asks for a provider. Saving a choice prevents subsequent setup prompts for that project, including across restarts and linked worktrees.
-- [ ] Settings can switch the project provider. New conversations use it and existing transcripts retain their original session identity.
-- [ ] The board saves provider data outside the project and keeps settings independent across separate projects and clones.
-- [ ] Copilot and Claude receive the selected board document and attached text files through a read-only discussion path.
-- [ ] A user can identify the provider, stop its turn, and recover from a setup, context, or session error.
+- [x] Opening an unconfigured board asks for a provider. Saving a choice prevents subsequent setup prompts for that project, including across restarts and linked worktrees.
+- [x] Settings can switch the project provider. New conversations use it and existing transcripts retain their original session identity.
+- [x] The board saves provider data outside the project and keeps settings independent across separate projects and clones.
+- [x] Copilot and Claude receive the selected board document and attached text files through a read-only discussion path.
+- [x] A user can identify the provider, stop its turn, and recover from a setup, context, or session error.
 
 **Verification Required:** Exercise the HTTP API, persisted chats, browser composer, and actual provider startup. Record which authenticated turns were observed.
 

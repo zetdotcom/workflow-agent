@@ -2,7 +2,7 @@
 
 ## Goal
 
-A developer can open a Kanban board from the terminal, see where work stands in the current repository, discuss a ticket with Codex, and authorize a workflow action from the board.
+A developer can open a Kanban board from the terminal, see where work stands in the current repository, discuss a ticket with the project's chat provider, and authorize a workflow action in a Codex chat.
 
 ## Technology
 
@@ -43,7 +43,9 @@ A developer can leave the board open beside their terminal, see a change advance
 
 ## Board chats
 
-The bottom-centered composer opens a board-owned local Codex conversation. A developer can start another chat explicitly and revisit saved chats. The `@` picker searches repository files and prioritizes the current board selection. The agent uses named project tools for file lookup, discussion, workflow status, and PR delivery.
+First-open setup offers Codex, Claude Code and GitHub Copilot. The board saves the provider outside Git for the local project and loads it on subsequent visits. Settings changes the provider for new conversations. A developer can revisit each saved chat and resume it with its original provider.
+
+The `@` picker searches repository files and prioritizes the current board selection. Claude and Copilot receive the selected board document and attached text for discussion. Codex also uses named project tools for repository lookup, workflow status, and PR delivery.
 
 A workflow preview identifies the resolved change, ticket, and reason. A `to-pr` preview also identifies the branch and the exact specification and plan under review. Authorizing a run includes PR publication when its required checks pass. The activity history records the actual tool calls, public summaries, file diffs, errors, and delivery evidence.
 

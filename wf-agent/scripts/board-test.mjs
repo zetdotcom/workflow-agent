@@ -13,7 +13,7 @@ const env = {
 const install = process.argv[2] === "install";
 const args = install
   ? [join(root, "node_modules", "playwright-core", "cli.js"), "install", "chromium", "--only-shell", ...process.argv.slice(3)]
-  : ["--test", "tests/browser.test.mjs", "tests/repository.test.mjs", "tests/chat.test.mjs"];
+  : ["--test", "tests/browser.test.mjs", "tests/repository.test.mjs", "tests/chat.test.mjs", "tests/provider-settings.test.mjs", "tests/copilot.test.mjs", "tests/claude.test.mjs"];
 const result = spawnSync(process.execPath, args, { cwd: root, env, stdio: "inherit" });
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;

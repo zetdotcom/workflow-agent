@@ -1,7 +1,7 @@
 {
   "name": "wf-agent",
   "version": "0.1.0",
-  "description": "A local workflow board with Codex chat and approved project actions",
+  "description": "A local workflow board with project chat providers and approved workflow actions",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -21,6 +21,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
+    "@microsoft/copilot-sdk": "2.0.3",
     "chokidar": "^4.0.3",
     "open": "^10.2.0",
     "yaml": "^2.8.0"
@@ -39,6 +40,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "koffi@3.3.7": true
   }
 }

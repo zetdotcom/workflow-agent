@@ -8,7 +8,7 @@ new -> discover -> breakdown -> specify? -> plan -> implement -> complete -> arc
 ```
 
 - [Install the `wf` skill](#install-the-wf-skill) from `skills/wf/` to manage tickets with your coding agent.
-- [Run the `wf-agent` board](wf-agent/README.md) to view tickets, discuss plans with local Codex, and authorize workflow actions in your browser.
+- View tickets, discuss plans with Codex, Claude Code, or GitHub Copilot, and authorize workflow actions in your browser. [Run the `wf-agent` board](wf-agent/README.md)
 
 ## Usage
 

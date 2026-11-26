@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
+import { isUtf8 } from "node:buffer";
 import { execFile } from "node:child_process";
 import { open, readFile, readdir, realpath, stat } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { parse } from "yaml";
-import { ChatError, displayText, type WorkflowAction } from "./chat-model.js";
+import { ChatError, displayText, type BoardSelection, type WorkflowAction } from "./chat-model.js";
 import { contextPath } from "./model.js";
 import { readBoard } from "./repository.js";
 
@@ -20,13 +21,13 @@ export class RepositoryFiles {
 
   async file(name: string) {
     if (!name || name.includes("\0") || isAbsolute(name) || (process.platform === "win32" && name.includes(":")) ||
-        name.split(/[/\\]/).some(part => part === ".." || part.toLowerCase() === ".git")) throw new ChatError(400, "Choose a file inside this repository.");
+        name.split(/[/\\]/).some(part => part === ".." || part.toLowerCase() === ".git")) throw new ChatError(400, "Choose a file inside this repository: " + name);
     const path = await realpath(resolve(this.root, name)).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") throw new ChatError(404, "File no longer exists: " + name);
       if (error.code === "ELOOP") throw new ChatError(400, "Cannot follow a circular link: " + name);
       throw error;
     });
-    if (outside(relative(this.root, path)) || !(await stat(path)).isFile()) throw new ChatError(400, "Choose a regular file inside this repository.");
+    if (outside(relative(this.root, path)) || !(await stat(path)).isFile()) throw new ChatError(400, "Choose a regular file inside this repository: " + name);
     return path;
   }
 
@@ -67,15 +68,50 @@ export class RepositoryFiles {
       .sort((a, b) => rank(a) - rank(b) || a.length - b.length || a.localeCompare(b)).slice(0, 30);
   }
 
-  async read(name: string, offset = 0) {
+  private async bytes(name: string, offset: number, length: number) {
     const handle = await open(await this.file(name), "r");
     try {
-      const page = Buffer.alloc(24_576);
-      const { bytesRead } = await handle.read(page, 0, page.length, offset);
-      if (page.subarray(0, bytesRead).includes(0)) throw new ChatError(400, "Binary file: " + name);
+      const page = Buffer.alloc(length);
+      let used = 0;
+      while (used < length) {
+        const { bytesRead } = await handle.read(page, used, length - used, offset + used);
+        if (bytesRead === 0) break;
+        used += bytesRead;
+      }
+      const bytes = page.subarray(0, used);
+      if (bytes.includes(0)) throw new ChatError(400, "Binary file: " + name);
       const size = (await handle.stat()).size;
-      return { path: name, text: displayText(page.toString("utf8", 0, bytesRead)), nextOffset: offset + bytesRead < size ? offset + bytesRead : null };
+      return { bytes, nextOffset: offset + used < size ? offset + used : null };
     } finally { await handle.close(); }
+  }
+
+  async read(name: string, offset = 0) {
+    const { bytes, nextOffset } = await this.bytes(name, offset, 24_576);
+    return { path: name, text: displayText(bytes.toString("utf8")), nextOffset };
+  }
+
+  async discussionFiles(selection: BoardSelection | undefined, attachments: string[]) {
+    const paths = new Set<string>();
+    if (selection) {
+      const board = await readBoard(this.root);
+      const change = board.changes.find(item => item.id === selection.change);
+      const ticket = change?.tickets.find(item => item.id === selection.ticket);
+      const archive = board.archive.find(item => "archived " + item.folder === selection.change);
+      if (change && (!selection.ticket || ticket)) paths.add(contextPath(change, ticket));
+      else if (archive && !selection.ticket) paths.add(".workflow/archive/" + archive.folder + "/SUMMARY.md");
+      else throw new ChatError(409, "The selected board item has moved. Reopen it before sending.");
+    }
+    for (const path of attachments) paths.add(path);
+    const documents: { path: string; text: string }[] = [];
+    let remaining = 96 * 1024;
+    for (const path of paths) {
+      const { bytes, nextOffset } = await this.bytes(path, 0, remaining + 1);
+      if (bytes.length > remaining || nextOffset !== null) throw new ChatError(413, "The selected files exceed 96 KiB at " + path + ". Choose smaller files.");
+      if (!isUtf8(bytes)) throw new ChatError(400, "Choose a UTF-8 text file: " + path);
+      remaining -= bytes.length;
+      documents.push({ path, text: displayText(bytes.toString("utf8")) });
+    }
+    return documents;
   }
 }
 

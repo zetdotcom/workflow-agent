@@ -1,3 +1,13 @@
+export const chatProviders = { codex: "Codex", claude: "Claude Code", copilot: "GitHub Copilot" } as const;
+export type ChatProvider = keyof typeof chatProviders;
+
+export function chatProvider(value: unknown): ChatProvider {
+  if (typeof value !== "string" || !Object.hasOwn(chatProviders, value)) {
+    throw new ChatError(400, "Choose Codex, Claude Code, or GitHub Copilot.");
+  }
+  return value as ChatProvider;
+}
+
 export interface BoardSelection {
   change: string;
   ticket?: string;
@@ -37,6 +47,7 @@ export interface HostPrompt {
 
 export interface ChatSummary {
   id: string;
+  provider: ChatProvider;
   title: string;
   updated: number;
 }

@@ -383,3 +383,92 @@ test("uses the bottom composer from ticket details, mentions repository files, a
     assert.equal(await page.getByRole("combobox", { name: "Saved chats" }).locator("option").count(), 2);
   }, env);
 });
+
+test("configures chat on first open and keeps a draft with its provider when another window changes Settings", async t => {
+  const repo = await fixture(t);
+  const env = { XDG_STATE_HOME: await fixture(t) };
+  await createChange(repo, "SHOP-8-checkout", "Checkout");
+  await writeFile(join(repo, "sample.bin"), Buffer.from([0, 1]));
+  await withBoard(repo, async page => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const setup = page.getByRole("region", { name: "Project chat setup" });
+    await setup.waitFor();
+    assert.equal(await setup.getByRole("radio", { checked: true }).count(), 0);
+    assert.equal(await setup.getByRole("button", { name: "Save provider" }).isDisabled(), true);
+    await setup.getByRole("button", { name: "Set up later" }).click();
+    await link(page, "Tickets").click();
+    await page.getByRole("button", { name: "Open Settings" }).waitFor();
+    await page.reload();
+    await setup.getByRole("radio", { name: "GitHub Copilot" }).check();
+    await setup.getByRole("button", { name: "Save provider" }).click();
+
+    const copilot = page.getByRole("region", { name: "GitHub Copilot chat" });
+    const draft = copilot.getByRole("textbox", { name: "Message GitHub Copilot" });
+    await draft.fill("Explain @sample");
+    await copilot.getByRole("option", { name: /sample\.bin/ }).click();
+    await copilot.getByRole("button", { name: "Send message" }).click();
+    await copilot.getByRole("alert").getByText(/sample\.bin/).waitFor();
+    assert.equal((await draft.inputValue()).trim(), "Explain");
+    const original = await copilot.getByRole("combobox", { name: "Saved chats" }).inputValue();
+
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Project settings" });
+    await dialog.getByRole("radio", { name: "Codex" }).check();
+    const second = await browser.newPage();
+    try {
+      await second.goto(page.url());
+      await second.getByRole("button", { name: "Settings", exact: true }).click();
+      const settings = second.getByRole("dialog", { name: "Project settings" });
+      await settings.getByRole("radio", { name: "Claude Code" }).check();
+      await settings.getByRole("button", { name: "Save provider" }).click();
+      await settings.waitFor({ state: "detached" });
+      await dialog.getByText(/Another window changed/).waitFor();
+      assert.equal(await dialog.getByRole("button", { name: "Save provider" }).isDisabled(), true);
+      await dialog.getByRole("button", { name: "Cancel" }).click();
+    } finally { await second.close(); }
+
+    await copilot.getByText(/The project now uses Claude Code/).waitFor();
+    assert.equal(await draft.isEditable(), false);
+    assert.equal((await draft.inputValue()).trim(), "Explain");
+    await copilot.getByRole("button", { name: "Remove sample.bin" }).waitFor();
+    await copilot.getByRole("button", { name: "Start a Claude Code chat" }).click();
+    const claude = page.getByRole("region", { name: "Claude Code chat" });
+    const saved = claude.getByRole("combobox", { name: "Saved chats" });
+    await saved.waitFor();
+    assert.notEqual(await saved.inputValue(), original);
+    assert.equal(await claude.getByRole("textbox").inputValue(), "");
+    await saved.selectOption(original);
+    await copilot.getByText(/The project now uses Claude Code/).waitFor();
+  }, env);
+  await withBoard(repo, async page => {
+    await page.getByRole("textbox", { name: "Message Claude Code" }).waitFor();
+    assert.equal(await page.getByRole("region", { name: "Project chat setup" }).count(), 0);
+  }, env);
+});
+
+test("opens a chat with the new project provider and can still stop the previous provider's run", async t => {
+  const repo = await fixture(t);
+  await createChange(repo, "SHOP-8-checkout", "Checkout");
+  const env = { ...await peerEnvironment(t), XDG_STATE_HOME: await fixture(t) };
+  await withBoard(repo, async page => {
+    const setup = page.getByRole("region", { name: "Project chat setup" });
+    await setup.getByRole("radio", { name: "Codex" }).check();
+    await setup.getByRole("button", { name: "Save provider" }).click();
+    const codex = page.getByRole("region", { name: "Codex chat" });
+    await codex.getByRole("textbox").fill("Wait for stop");
+    await codex.getByRole("button", { name: "Send message" }).click();
+    await codex.getByText("Waiting for interruption.", { exact: true }).waitFor();
+    const original = await codex.getByRole("combobox", { name: "Saved chats" }).inputValue();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Project settings" });
+    await settings.getByRole("radio", { name: "GitHub Copilot" }).check();
+    await settings.getByRole("button", { name: "Save provider" }).click();
+    await codex.getByText(/The project now uses GitHub Copilot/).waitFor();
+    await codex.getByRole("button", { name: "New chat", exact: true }).click();
+    const copilot = page.getByRole("region", { name: "GitHub Copilot chat" });
+    await copilot.getByRole("combobox", { name: "Saved chats" }).selectOption(original);
+    await codex.getByRole("button", { name: "Stop", exact: true }).click();
+    await codex.getByText("Chat stopped", { exact: true }).waitFor();
+    assert.equal(await codex.getByRole("button", { name: "Send message" }).isDisabled(), true);
+  }, env);
+});

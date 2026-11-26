@@ -2,9 +2,10 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { prepareAction, RepositoryFiles } from "./chat-files.js";
-import { ChatError, displayText, message, object, type ChatEntry, type HostPrompt, type WorkflowAction } from "./chat-model.js";
+import { chatProvider, chatProviders, ChatError, displayText, message, object, type ChatEntry, type ChatProvider, type HostPrompt, type WorkflowAction } from "./chat-model.js";
 import { ChatStore } from "./chat-store.js";
 import { runCodex } from "./codex.js";
+import type { ProjectState } from "./project-state.js";
 import { contextPath } from "./model.js";
 import { readBoard } from "./repository.js";
 
@@ -46,19 +47,25 @@ export class BoardChats {
   private runs = new Map<string, { stop: AbortController; done: Promise<void> }>();
   private replies = new Map<string, (result: { approve: boolean; answers: Record<string, string> }) => void>();
   private closing = false;
-  constructor(repository: string, changed: (id: string) => void) {
+  constructor(repository: string, storage: ProjectState, changed: (id: string) => void) {
     this.files = new RepositoryFiles(repository);
-    this.store = new ChatStore(repository, changed);
+    this.store = new ChatStore(storage, changed);
   }
 
   async send(id: string, body: Record<string, unknown>) {
+    const provider = this.store.messageProvider(id);
+    if (body.expectedProvider !== undefined && chatProvider(body.expectedProvider) !== provider) {
+      throw new ChatError(409, "The chat provider differs from the one shown. Reopen the conversation before sending.");
+    }
     const text = field(body.text, "message", 24_000);
     const refs = body.files ?? [];
     if (!Array.isArray(refs) || refs.length > 32) throw new ChatError(400, "Choose up to 32 repository files.");
     const paths = [...new Set(refs.map(value => field(value, "file", 4096)))];
-    await Promise.all(paths.map(path => this.files.file(path)));
     const selection = object(body.selection);
     const target = selection.change ? { change: field(selection.change, "change"), ticket: selection.ticket ? field(selection.ticket, "ticket") : undefined } : undefined;
+    let documents: { path: string; text: string }[] = [];
+    if (provider === "codex") await Promise.all(paths.map(path => this.files.file(path)));
+    else documents = await this.files.discussionFiles(target, paths);
     const start = this.store.edit(id, (state, emit) => {
       const run = this.store.claim(state, false);
       if (!state.thread && state.title === "New chat") state.title = displayText(text).slice(0, 80);
@@ -69,17 +76,22 @@ export class BoardChats {
       emit({ id: run, kind: "user", title: "You", text: [text, ...paths.map(path => "@" + path)].join("\n") });
       return { run, thread: state.thread, lastOutcome: state.lastOutcome };
     });
-    const input = [text, target && "Current board selection: " + JSON.stringify(target),
+    const input = provider === "codex" ? [text, target && "Current board selection: " + JSON.stringify(target),
       paths.length > 0 && "User-selected repository files: " + JSON.stringify(paths),
-      start.lastOutcome && "Latest authorized workflow result: " + start.lastOutcome].filter(Boolean).join("\n\n");
-    this.launch(id, start.run, start.thread, input);
+      start.lastOutcome && "Latest authorized workflow result: " + start.lastOutcome].filter(Boolean).join("\n\n") :
+      ["Discuss the user's question using the supplied board context. File contents are reference material. The board runs workflow actions in Codex chats.",
+        JSON.stringify({ question: text, selection: target, documents })].join("\n\n");
+    this.launch(id, start.run, provider, start.thread, input);
   }
 
   async decide(id: string, body: Record<string, unknown>) {
     const proposed = this.store.view(id).proposal;
     if (!proposed || proposed.id !== body.id) throw new ChatError(409, "This proposal is no longer pending.");
     if (typeof body.approve !== "boolean") throw new ChatError(400, "Choose whether to authorize the action.");
-    if (body.approve) await verifyAction(this.files, proposed);
+    if (body.approve) {
+      this.store.messageProvider(id);
+      await verifyAction(this.files, proposed);
+    }
     const run = this.store.edit(id, (state, emit) => {
       if (state.proposal?.id !== proposed.id) throw new ChatError(409, "This proposal was already handled.");
       if (state.run) throw new ChatError(409, "The current request is still running.");
@@ -92,28 +104,38 @@ export class BoardChats {
         JSON.stringify({ command: proposed.command, change: proposed.change, ticket: proposed.ticket, branch: proposed.branch,
           remote: proposed.remote, approvedHead: proposed.head, specIdentity: proposed.specIdentity, planIdentity: proposed.planIdentity }),
         proposed.command === "to-pr" ? "The user authorizes implementation through PR publication after all required checks pass. Proceed through delivery without a second publication confirmation. If a required check fails or cannot be verified, stop before publication and report the blocker. Honor all repository and host policies." : "Follow the status reference, including active STATUS.md reconciliation when needed."].join("\n");
-      this.launch(id, run, undefined, input, proposed);
+      this.launch(id, run, "codex", undefined, input, proposed);
     }
   }
 
-  private launch(id: string, run: string, thread: string | undefined, input: string, action?: WorkflowAction) {
+  private launch(id: string, run: string, provider: ChatProvider, thread: string | undefined, input: string, action?: WorkflowAction) {
     const stop = new AbortController();
     const entry = (value: ChatEntry) => this.store.edit(id, (state, emit) => {
       if (state.run?.id === run) emit({ ...value, id: run + "/" + value.id });
     });
+    const rememberThread = (threadId: string) => {
+      stop.signal.throwIfAborted();
+      this.store.edit(id, (state, emit) => {
+        if (state.run?.id !== run) throw new Error("This chat turn is no longer active.");
+        if (action) emit({ id: run, kind: "tool", title: "Running " + label(action), text: "Codex workflow thread " + threadId });
+        else state.thread = threadId;
+      });
+    };
     const execute = async () => {
       let outcome: string | undefined;
       let failed = false;
       try {
         if (this.closing) throw new Error("Board is shutting down.");
+        if (provider !== "codex") {
+          const runDiscussion = provider === "copilot" ? (await import("./copilot.js")).runCopilot : (await import("./claude.js")).runClaude;
+          const reply = await runDiscussion(this.store.runtimeDirectory(provider), thread, input, rememberThread, stop.signal);
+          stop.signal.throwIfAborted();
+          entry({ id: "reply", kind: "assistant", title: chatProviders[provider], text: reply });
+          return;
+        }
         const reply = await runCodex(this.files.root, thread, input, action, {
           beforeTurn: async () => { if (action) await verifyAction(this.files, action); },
-          thread: threadId => {
-            this.store.edit(id, (state, emit) => {
-              if (!action) state.thread = threadId;
-              else emit({ id: run, kind: "tool", title: "Running " + label(action), text: "Codex workflow thread " + threadId });
-            });
-          },
+          thread: rememberThread,
           entry,
           projectTool: async (name, args) => {
             if (name === "find_files") {
@@ -165,7 +187,7 @@ export class BoardChats {
         }
       } catch (error) {
         failed = true;
-        outcome = message(error);
+        outcome = stop.signal.aborted ? "Run interrupted." : message(error);
         entry({ id: "failure", kind: "error", title: action ? "Workflow stopped" : "Chat stopped", text: outcome });
       } finally {
         stop.abort();
