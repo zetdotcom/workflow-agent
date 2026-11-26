@@ -11,7 +11,7 @@ Board chat only connects to Codex. Developers who use GitHub Copilot or Claude C
 
 ## Goal
 
-Start a conversation with Codex, GitHub Copilot, or Claude Code directly from the board and continue it with the same provider after reopening it.
+Choose Codex, Claude Code, or GitHub Copilot once when opening a project's board. The board remembers the choice on this machine. Settings is where the user can change it.
 
 ## Current State
 
@@ -24,8 +24,11 @@ The developer delegated the discovery interview to an independent questioner and
 
 | Question | Decision and reason |
 | --- | --- |
-| How does someone know where a message will go? | Offer a provider choice before the first send, including in the collapsed composer. Label the current conversation and its saved entry. **New chat** creates a separate, saved conversation with the chosen provider and can be used while another chat is running. |
-| What does choosing a provider mean? | Choose the assistant for the lifetime of a chat. Codex is the initial default. Each assistant uses its own model configuration. A follow-up or restart uses the stored provider and exact session. If that session cannot resume, explain how to start a new chat. |
+| When does setup appear? | Opening an unconfigured board presents all three providers. Reading the board can continue while setup is open or deferred. Saving an explicit choice enables chat. Future openings, including in another browser or after a restart, load that project setting. |
+| How does a developer switch assistants? | Change the project provider in **Settings**. Every new chat uses that choice. Each transcript shows its original provider. The user can read an earlier provider's conversation, stop its running turn, start a new chat with the configured provider, or switch back to resume its exact session. Each provider uses its own model configuration. |
+| What identifies a project? | Use the local Git repository identity shared by its linked worktrees, or the canonical board directory for a standalone workflow project. Separate clones and separate projects have independent settings. Transcripts stay with the checkout whose files they reference. |
+| Where is project data saved? | Persist the choice in the user's external wf-agent state directory, alongside checkout-specific chat storage. Keep provider credentials in the provider's native sign-in mechanism. Reject a state path inside the project. The working tree receives no settings, sessions, transcripts, or secrets. |
+| What if two windows change Settings? | Check the previously displayed value when saving. A stale window reloads the saved setting. New turns check the project's current provider before they claim a run. An authorized run already in progress can finish or be stopped. |
 | What does Copilot or Claude know about the board? | Send the text of the open change, ticket, or archive record and the files explicitly attached with `@`. Deduplicate files. Validate paths and apply the board’s redaction before sending. Identify any binary, missing, or oversized input so the user can fix it. |
 | Can every assistant run a workflow? | Copilot and Claude provide discussion using the supplied text. Their sessions have no project tools and run outside the checkout. Codex handles repository search and approved `wf` actions through its existing board integration. Make this distinction visible when choosing a chat. |
 | Where do credentials and sessions live? | Use the official Copilot SDK in empty mode with a board-owned working directory and explicit tool restrictions. Run the local Claude Code CLI in safe mode with built-in and MCP tools disabled. Both use provider authentication configured outside the board. The board stores the provider and native session ID alongside its transcript. |
@@ -35,8 +38,8 @@ GitHub documents Copilot’s session isolation and Anthropic documents Claude’
 
 ## Scope and rollout
 
-Ship provider selection and both discussion runtimes together. Identify existing conversations as Codex in a single storage migration. Validate the same board experience on the repository’s supported platforms and report live sign-in or inference limitations separately for each provider.
+Ship project setup, Settings, and both discussion runtimes together. Identify existing conversations as Codex in a single storage migration. The first explicit project choice still belongs to the user. Validate the board on its supported platforms and report live sign-in or inference limitations for each provider.
 
 ## Raw Context
 
-The developer asked to “expand options for model provider in my board chat” and “add copilot and claude as well.” The initial draft called for per-chat selection, continued sessions, selected repository files, setup guidance, and discovery of model and workflow-action support.
+The developer asked to “expand options for model provider in my board chat” and “add copilot and claude as well.” They clarified that the board should ask for setup on first open, remember a configured provider, offer changes in Settings, and keep provider data per project and out of Git.

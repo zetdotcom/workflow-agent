@@ -8,8 +8,8 @@ updated: 2026-11-26
 
 ### In Progress
 
-### Todo
+- `001` Set up the project's board chat provider
 
-- `001` Choose a provider for board conversations
+### Todo
 
 ### Done

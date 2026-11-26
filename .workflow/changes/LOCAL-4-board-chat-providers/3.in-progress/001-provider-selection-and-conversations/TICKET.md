@@ -3,17 +3,19 @@ created: 2026-11-26
 updated: 2026-11-26
 ---
 
-# 001 — Choose a provider for board conversations
+# 001 — Set up the project's board chat provider
 
 ## Summary
 
-**Goal:** Let a developer ask GitHub Copilot or Claude Code about the board from the same composer they use for Codex.
+**Goal:** Let a developer select Codex, Claude Code, or GitHub Copilot once per project and change the choice in Settings.
 
 **Scope:** Provider selection, conversation history, bounded repository context, local setup feedback, Stop, and coverage of Codex workflow approvals.
 
 **Acceptance Criteria:**
 
-- [ ] A new conversation can use any of the three providers. Its provider and session survive reopening and board restarts.
+- [ ] Opening an unconfigured board asks for a provider. Saving a choice prevents subsequent setup prompts for that project, including across restarts and linked worktrees.
+- [ ] Settings can switch the project provider. New conversations use it and existing transcripts retain their original session identity.
+- [ ] The board saves provider data outside the project and keeps settings independent across separate projects and clones.
 - [ ] Copilot and Claude receive the selected board document and attached text files through a read-only discussion path.
 - [ ] A user can identify the provider, stop its turn, and recover from a setup, context, or session error.
 
@@ -25,6 +27,6 @@ updated: 2026-11-26
 
 ## Technical Deep-Dive
 
-The chat server claims a turn in SQLite before dispatch. Store the provider when creating the chat and scope the native session ID to that record. Bind dispatch and cancellation to server-owned state. The client can choose a provider only for a new chat.
+The chat server claims a turn in SQLite before dispatch. Read the project setting when creating a chat and bind the native session ID to that chat. Authorize new messages against the current project setting. Use the board's private state directory for configuration and runtime data.
 
 Reuse the board's file validation, transcript redaction, active-run claims, and Codex approval flow. The chat dock can send from both the board and the ticket details panel. The browser suite also exercises saving an empty new conversation and reopening it after a restart.
