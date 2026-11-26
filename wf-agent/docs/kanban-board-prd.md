@@ -1,10 +1,10 @@
 # Local Kanban board for workflow-agent
 
-## Phase 1 goal
+## Goal
 
-A developer can open a read-only Kanban board from the terminal, see where work stands in the current repository, and inspect a change or ticket without hunting through Markdown files. All edits and lifecycle actions happen through the existing workflow.
+A developer can open a Kanban board from the terminal, see where work stands in the current repository, discuss a ticket with Codex, and authorize a workflow action from the board.
 
-## Phase 1 technology
+## Technology
 
 Use TypeScript for the local Node.js process and the React interface. Node.js reads and watches `.workflow` and derives the board state from the ticket folders. React displays that state and renders the change and ticket details. Revisit the runtime if profiling identifies a bottleneck or a concrete platform requirement calls for a change.
 
@@ -39,11 +39,17 @@ Archiving a change in `wf` removes its card from the board. A separate Archive p
 
 ## Success criterion
 
-A developer can leave the board open beside their terminal, run `wf`, see a change advance, and inspect the ticket behind that progress.
+A developer can leave the board open beside their terminal, see a change advance, and inspect the ticket behind that progress. From a ticket they can ask about its plan, attach repository files, review a proposed action, and inspect the resulting activity after restarting the board.
+
+## Board chats
+
+The bottom-centered composer opens a board-owned local Codex conversation. A developer can start another chat explicitly and revisit saved chats. The `@` picker searches repository files and prioritizes the current board selection. The agent uses named project tools for file lookup, discussion, workflow status, and PR delivery.
+
+A workflow preview identifies the resolved change, ticket, and reason. A `to-pr` preview also identifies the branch and the exact specification and plan under review. Authorizing a run includes PR publication when its required checks pass. The activity history records the actual tool calls, public summaries, file diffs, errors, and delivery evidence.
 
 ## Supported platforms
 
-Phase 1 supports macOS, Windows, and Linux. Verify both behaviors on each platform before release:
+The board supports macOS, Windows, and Linux. Verify both behaviors on each platform before release.
 
 - Launching the app from a repository opens that repository’s board in the default browser.
 - With a change’s details open, move its last unfinished ticket into `4.done/`. The card moves to Done automatically and the details stay open.

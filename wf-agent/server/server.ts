@@ -1,12 +1,30 @@
 import { watch } from "node:fs";
-import { createServer, type ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { readFile, realpath } from "node:fs/promises";
 import { once } from "node:events";
 import { watch as watchPaths } from "chokidar";
 import { checkWorkflow, readBoard } from "./repository.js";
+import { BoardChats } from "./chat.js";
+import { ChatError, displayText, message, object } from "./chat-model.js";
 
 const web = new URL("../web/", import.meta.url);
 const types: Record<string, string> = { html: "text/html; charset=utf-8", css: "text/css", js: "text/javascript" };
+
+async function readJson(request: IncomingMessage) {
+  const chunks: Buffer[] = [];
+  let length = 0;
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > 96_000) throw new ChatError(413, "Request is too large.");
+    chunks.push(chunk);
+  }
+  try {
+    const value: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error();
+    return object(value);
+  }
+  catch { throw new ChatError(400, "Expected a JSON object."); }
+}
 
 async function watchWorkflow(root: string, onChange: () => void) {
   if (process.platform === "win32") {
@@ -27,8 +45,17 @@ async function watchWorkflow(root: string, onChange: () => void) {
 }
 
 export async function startServer(repository: string) {
+  repository = await realpath(repository);
   const root = await checkWorkflow(repository);
   const clients = new Set<ServerResponse>();
+  let chatTimer: ReturnType<typeof setTimeout> | undefined;
+  const chats = new BoardChats(repository, () => {
+    if (chatTimer) return;
+    chatTimer = setTimeout(() => {
+      chatTimer = undefined;
+      for (const client of clients) client.write("event: chat\ndata: changed\n\n");
+    }, 60);
+  });
   let timer: ReturnType<typeof setTimeout> | undefined;
   const stopWatching = await watchWorkflow(root, () => {
     clearTimeout(timer);
@@ -43,16 +70,46 @@ export async function startServer(repository: string) {
       response.writeHead(403).end();
       return;
     }
-    if (request.method !== "GET") {
+    const origin = "http://127.0.0.1:" + address.port;
+    let url: URL;
+    try { url = new URL(request.url ?? "/", origin); }
+    catch { response.writeHead(400).end("Invalid request URL."); return; }
+    if (url.origin !== origin) { response.writeHead(403).end(); return; }
+    const path = url.pathname;
+    const chatRoute = /^\/api\/chats\/([a-f0-9-]{36})(?:\/(messages|decision|permission|stop))?$/.exec(path);
+    const writable = path === "/api/chats" || Boolean(chatRoute?.[2]);
+    const write = request.method === "POST" && writable;
+    if (request.method !== "GET" && !write) {
       response.writeHead(405, { Allow: "GET" }).end();
+      return;
+    }
+    if (write && (request.headers.origin !== origin || request.headers["content-type"]?.split(";")[0] !== "application/json")) {
+      response.writeHead(403).end("A same-origin JSON request is required.");
       return;
     }
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Content-Security-Policy", "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
-    const path = request.url ?? "/";
     try {
-      if (path === "/api/board") {
+      const json = (value: unknown, code = 200) => response.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify(value));
+      if (write) {
+        const body = await readJson(request);
+        if (path === "/api/chats") json({ id: chats.store.create() }, 201);
+        else if (chatRoute) {
+          const [, id, operation] = chatRoute;
+          if (operation === "messages") await chats.send(id, body);
+          if (operation === "decision") await chats.decide(id, body);
+          if (operation === "permission") chats.respond(id, body);
+          if (operation === "stop") chats.stop(id);
+          json({ id }, 202);
+        }
+      } else if (path === "/api/chats") {
+        json(chats.store.list());
+      } else if (chatRoute && !chatRoute[2]) {
+        json(chats.store.view(chatRoute[1]));
+      } else if (path === "/api/files") {
+        json(await chats.files.search(url.searchParams.get("q") ?? "", url.searchParams.get("selected") ?? ""));
+      } else if (path === "/api/board") {
         const board = await readBoard(repository);
         response.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(board));
       } else if (path === "/api/events") {
@@ -68,7 +125,7 @@ export async function startServer(repository: string) {
         response.writeHead(404).end();
       }
     } catch (error) {
-      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }).end(error instanceof Error ? error.message : "Could not read the repository.");
+      response.writeHead(error instanceof ChatError ? error.status : 500, { "Content-Type": "text/plain; charset=utf-8" }).end(displayText(message(error)));
     }
   });
   server.listen(0, "127.0.0.1");
@@ -87,7 +144,8 @@ export async function startServer(repository: string) {
       clearTimeout(timer);
       for (const client of clients) client.end();
       server.closeAllConnections();
-      await Promise.all([stopWatching(), new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))]);
+      await Promise.all([chats.close(), stopWatching(), new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))]);
+      clearTimeout(chatTimer);
     }
   };
 }

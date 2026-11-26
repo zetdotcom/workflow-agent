@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { stages, type Board, type Change, type Document, type Stage, type Ticket } from "../server/model";
+import { contextPath, stages, type Board, type Change, type Document, type Stage, type Ticket } from "../server/model";
+import { ChatDock } from "./chat";
+import { RichText } from "./rich-text";
 import "./style.css";
 
 const archivePath = "#/archive";
@@ -12,14 +14,6 @@ const changePath = (id: string) => boardPath + "/changes/" + encodeURIComponent(
 const stageIndex = (stage: Stage) => stages.indexOf(stage);
 const changeKey = (id: string) => /^[A-Za-z][A-Za-z0-9]*-\d+(?=-|$)/.exec(id)?.[0] ?? id;
 const ticketKey = (id: string) => id.split("-")[0];
-
-function RichText({ text }: { text: string }) {
-  return <div className="markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
-    img: ({ alt }) => <span>{alt}</span>,
-    a: ({ href, children }) => /^https?:\/\//i.test(href ?? "")
-      ? <a href={href} target="_blank" rel="noreferrer">{children}</a> : <span>{children}</span>
-  }}>{text}</Markdown></div>;
-}
 
 function TicketDocument({ document }: { document: Document }) {
   const [expanded, setExpanded] = useState(false);
@@ -33,6 +27,7 @@ function useBoard() {
   const [board, setBoard] = useState<Board>();
   const [error, setError] = useState("");
   const [online, setOnline] = useState(false);
+  const [chatRevision, setChatRevision] = useState(0);
   useEffect(() => {
     const stream = new EventSource("/api/events");
     let active: AbortController | undefined;
@@ -49,11 +44,12 @@ function useBoard() {
         if (!request.signal.aborted) setError(cause instanceof Error ? cause.message : "Could not read the workflow.");
       }
     });
-    stream.onopen = () => setOnline(true);
+    stream.addEventListener("chat", () => setChatRevision(value => value + 1));
+    stream.onopen = () => { setOnline(true); setChatRevision(value => value + 1); };
     stream.onerror = () => setOnline(false);
     return () => { stream.close(); active?.abort(); };
   }, []);
-  return { board, error, online };
+  return { board, error, online, chatRevision };
 }
 
 function StageLabel({ stage }: { stage: Stage }) {
@@ -104,8 +100,8 @@ function Lanes<Item extends { stage: Stage }>({ items, renderCard, emptyLabel }:
   })}</div>;
 }
 
-type PanelProps = { title: string; id: string; close: string; children: React.ReactNode };
-function Panel({ title, id, close, children }: PanelProps) {
+type PanelProps = { title: string; id: string; close: string; children: React.ReactNode; chatHost: (node: HTMLDivElement | null) => void };
+function Panel({ title, id, close, children, chatHost }: PanelProps) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current!;
@@ -124,12 +120,14 @@ function Panel({ title, id, close, children }: PanelProps) {
     <div className="sheet">
       <header className="sheet-bar"><code>{id}</code><button type="button" aria-label="Close details" className="close" onClick={dismiss}>×</button></header>
       <div className="sheet-body"><h2 id="detail-title">{title}</h2>{children}</div>
+      <div ref={chatHost} className="sheet-chat" />
     </div>
   </dialog>;
 }
 
 function App() {
-  const { board, error, online } = useBoard();
+  const { board, error, online, chatRevision } = useBoard();
+  const [chatHost, setChatHost] = useState<HTMLDivElement | null>(null);
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
     const update = () => setHash(location.hash);
@@ -204,11 +202,11 @@ function App() {
         {!board.archive.length && <p className="empty">No archived changes</p>}
       </section>}
     </main>
-    {scoped && change && action === "details" && <Panel key={hash} title={change.title} id={changeKey(change.id)} close={changePath(change.id)}>
+    {scoped && change && action === "details" && <Panel chatHost={setChatHost} key={hash} title={change.title} id={changeKey(change.id)} close={changePath(change.id)}>
       <StageLabel stage={change.stage} />
       {change.goal && <section><h3>Goal</h3><RichText text={change.goal} /></section>}
     </Panel>}
-    {change && ticket && <Panel key={hash} title={ticket.title} id={changeKey(change.id) + " / " + ticketKey(ticket.id)}
+    {change && ticket && <Panel chatHost={setChatHost} key={hash} title={ticket.title} id={changeKey(change.id) + " / " + ticketKey(ticket.id)}
       close={scoped ? changePath(change.id) : ticketsPath}>
       <StageLabel stage={ticket.stage} />
       {([["Goal", ticket.goal], ["Scope", ticket.scope], ["Delivery criteria", ticket.criteria]] as const).map(([label, value]) =>
@@ -216,10 +214,13 @@ function App() {
       <section><h3>Documents</h3>{ticket.documents.map(doc =>
         <TicketDocument key={doc.label} document={doc} />)}</section>
     </Panel>}
-    {record && <Panel key={hash} title={record.title} id={changeKey(record.id)} close={archivePath}>
+    {record && <Panel chatHost={setChatHost} key={hash} title={record.title} id={changeKey(record.id)} close={archivePath}>
       <p className="archive-meta">{record.date} · {record.outcome}</p>
       <RichText text={record.summary.replace(/^# [^\n]+\n?/, "")} />
     </Panel>}
+    {board && <ChatDock host={chatHost} revision={chatRevision}
+      selectedPath={change ? contextPath(change, ticket || undefined) : record ? ".workflow/archive/" + record.folder + "/SUMMARY.md" : ""}
+      selection={change ? { change: change.id, ticket: ticket ? ticket.id : undefined } : record ? { change: "archived " + record.folder } : undefined} />}
   </>;
 }
 

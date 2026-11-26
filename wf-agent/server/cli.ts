@@ -4,7 +4,7 @@ import { startServer } from "./server.js";
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes("--help")) {
-    console.log("Usage: wf-agent [--no-open]\nOpen the read-only board for the current repository.");
+    console.log("Usage: wf-agent [--no-open]\nOpen the workflow board and local Codex chats for the current repository.");
     return;
   }
   if (args.some(arg => arg !== "--no-open")) throw new Error("Unknown option. Run wf-agent --help for usage.");

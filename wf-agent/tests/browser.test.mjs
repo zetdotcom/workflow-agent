@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { fixture } from "./fixture.mjs";
+import { commitWorkflowFixture, fixture, peerEnvironment } from "./fixture.mjs";
 
 const launcher = fileURLToPath(new URL("../bin/wf-agent.js", import.meta.url));
 let browser;
@@ -15,10 +15,11 @@ let browser;
 before(async () => { browser = await chromium.launch(); });
 after(async () => { await browser?.close(); });
 
-async function withBoard(repository, exercise) {
+async function withBoard(repository, exercise, env = {}) {
   const app = spawn(process.execPath, [launcher, "--no-open"], {
     cwd: repository,
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, ...env },
   });
   const closed = once(app, "close");
   const output = createInterface({ input: app.stdout });
@@ -294,4 +295,91 @@ test("recovers after an unreadable workflow file is repaired", async t => {
     await page.getByRole("status").getByText("Live updates").waitFor();
     await lane(page, "Draft").getByRole("link").filter({ hasText: "Checkout" }).waitFor();
   });
+});
+
+test("uses the bottom composer from ticket details, mentions repository files, and reopens independent chats", async t => {
+  const repo = await fixture(t);
+  const env = await peerEnvironment(t);
+  const change = await createChange(repo, "SHOP-8-checkout", "Checkout");
+  const ticket = await createTicket(change, "2.todo", "001-receipts", "Receipts");
+  for (const name of ["SPEC.md", "PLAN.md", "PLAN-BRIEF.md"]) await writeFile(join(ticket, name), "# Receipts\n\n" + name);
+  commitWorkflowFixture(repo);
+  await writeFile(join(repo, "orders.js"), "export const orders = [];");
+  await withBoard(repo, async page => {
+    await link(page, "Tickets").click();
+    await link(page, "001 Receipts").click();
+    const dock = page.getByRole("region", { name: "Codex chat" });
+    const input = dock.getByRole("textbox", { name: "Message Codex" });
+    await input.fill("@");
+    const first = dock.getByRole("option").first();
+    await first.getByText("Current selection").waitFor();
+    assert.match(await first.textContent(), /001-receipts\/TICKET\.md/);
+    await input.press("Tab");
+    await dock.getByRole("button", { name: /Remove .*TICKET\.md/ }).waitFor();
+    await input.fill("Explain @orders");
+    await dock.getByRole("option", { name: /orders\.js/ }).click();
+    await dock.getByRole("button", { name: "Send message" }).click();
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await dock.getByText("Decision summary", { exact: true }).click();
+    await dock.getByText("Checked the requested ticket.", { exact: true }).waitFor();
+    const original = await dock.getByRole("combobox", { name: "Saved chats" }).inputValue();
+    await closeDetails(page);
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await dock.getByRole("button", { name: "New chat", exact: true }).click();
+    await dock.getByText("The plan explains the ticket approach.").waitFor({ state: "detached" });
+    await dock.getByRole("combobox", { name: "Saved chats" }).selectOption(original);
+    await dock.getByText("The plan explains the ticket approach.").waitFor();
+    await input.fill("Status for SHOP-8 001");
+    await dock.getByRole("button", { name: "Send message" }).click();
+    await dock.getByRole("button", { name: "Authorize and run" }).waitFor();
+    const singleCallGroups = dock.getByRole("group", { name: "tool calls (1)", exact: true });
+    const statusGroup = singleCallGroups.filter({ hasText: "wf_status · completed" });
+    const expandStatus = statusGroup.getByRole("button", { name: "Expand tool calls", expanded: false });
+    const collapseStatus = statusGroup.getByRole("button", { name: "Collapse tool calls", expanded: true });
+    const statusCall = statusGroup.getByText("wf_status · completed", { exact: true });
+    await expandStatus.waitFor();
+    assert.equal(await statusCall.isVisible(), false);
+    await expandStatus.press("Enter");
+    await statusCall.click();
+    const argumentsAndResult = statusGroup.locator("pre");
+    assert.match(await argumentsAndResult.innerText(), /"ticket":\s*"001"/);
+    await collapseStatus.click();
+    await argumentsAndResult.waitFor({ state: "hidden" });
+    await expandStatus.click();
+    await argumentsAndResult.waitFor();
+    await dock.getByRole("button", { name: "Decline", exact: true }).click();
+    await dock.getByText("Declined", { exact: true }).waitFor();
+    await input.fill("Propose the PR");
+    await dock.getByRole("button", { name: "Send message" }).click();
+    const prGroup = singleCallGroups.filter({ hasText: "wf_to_pr · completed" });
+    const expandPr = prGroup.getByRole("button", { name: "Expand tool calls", expanded: false });
+    await expandPr.waitFor();
+    await argumentsAndResult.waitFor();
+    await expandPr.click();
+    await collapseStatus.click();
+    await prGroup.getByText("wf_to_pr · completed", { exact: true }).waitFor();
+    await argumentsAndResult.waitFor({ state: "hidden" });
+
+    await page.reload();
+    await dock.getByRole("button", { name: "Show or hide saved chats" }).click();
+    await expandStatus.waitFor();
+    await expandPr.waitFor();
+    await dock.getByRole("button", { name: "Authorize and run" }).click();
+    await dock.getByText("PR published", { exact: true }).waitFor();
+    assert.equal(await dock.getByRole("link", { name: "https://example.test/pull/17" }).getAttribute("href"), "https://example.test/pull/17");
+    await dock.getByText("Turn diff", { exact: true }).click();
+    await dock.getByText("+export const calendar = true;", { exact: true }).waitFor();
+    const workflowGroup = dock.getByRole("group", { name: "tool calls (2)", exact: true }).filter({ hasText: "Running wf to-pr " });
+    await workflowGroup.getByText("tool calls (2)", { exact: true }).waitFor();
+    await workflowGroup.getByRole("button", { name: "Expand tool calls" }).click();
+    await workflowGroup.getByText("Command · completed", { exact: true }).click();
+    await workflowGroup.getByText(/Checks passed/).waitFor();
+    assert.equal(await workflowGroup.locator("details[open]").count(), 1);
+    assert.equal(await workflowGroup.locator("details:not([open])").count(), 1);
+  }, env);
+  await withBoard(repo, async page => {
+    await page.getByRole("button", { name: "Show or hide saved chats" }).click();
+    await page.getByText("Declined", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("combobox", { name: "Saved chats" }).locator("option").count(), 2);
+  }, env);
 });
