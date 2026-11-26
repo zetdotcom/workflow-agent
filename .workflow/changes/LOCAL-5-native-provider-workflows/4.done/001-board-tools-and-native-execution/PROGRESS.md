@@ -31,3 +31,9 @@ The signed-in Copilot smoke initially failed because the model tried a path outs
 - `npm pack` followed by a clean `npm install` into a temporary prefix exercised the distributable. All bundled wf files matched the canonical tree. The installed binary served a disposable project, saved both provider choices, created chats and loaded its own command references and validator.
 - The independent reviewer approved the final file reader after exercising long sensitive fields, arbitrary offsets, malformed UTF-8 and cancellation. An unrelated Git history and a missing baseline were both rejected before a resumed workflow could start.
 - A boundary comparison found an overlap between an authorization header and the Basic credential it contained. The corrected reader matched the shared redactor byte for byte for all 367 page cuts in the comparison. A regression case runs in the board suite.
+
+### Completed - 2026-11-26
+
+The board suite passed on Linux, macOS and Windows for the final implementation commit `c1c3883`. [GitHub Actions results](https://github.com/zetdotcom/workflow-agent/actions/runs/45888589824)
+
+The change is ready for review on the provider-selection branch. [Native workflows PR #4](https://github.com/zetdotcom/workflow-agent/pull/4) · [Provider setup PR #3](https://github.com/zetdotcom/workflow-agent/pull/3)
