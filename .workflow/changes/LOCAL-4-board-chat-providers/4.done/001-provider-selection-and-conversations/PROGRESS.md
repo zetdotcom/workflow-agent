@@ -24,3 +24,9 @@ The server compares the current setting when saving a change and claiming a turn
 | Use workflow actions | The Codex integration and browser tests passed for proposals, declining and authorizing, interrupted runs, saved pending approvals and PR receipts. The new providers' discussions have no project tools. |
 
 **Commands.** On macOS with Node 22.14.0, `npm ci`, `npm run test:browser:install`, and `npm test` in `wf-agent` succeeded. The final suite passed 26 tests, including 10 Chromium scenarios. The independent browser smoke launched the production `wf-agent/bin/wf-agent.js --no-open` against a disposable project and used a real signed-in Copilot account. `./scripts/verify.sh` passed all repository checks. `bash skills/wf/scripts/validate-workflow.sh "$PWD"` and the installed skill validator both reported valid metadata.
+
+### Completed - 2026-11-26
+
+The board test suite passed on Linux, macOS, and Windows for the implementation commit `e3318ec`. [GitHub Actions run](https://github.com/zetdotcom/workflow-agent/actions/runs/45856805931)
+
+The change is ready for review against `main`. [Pull request #3](https://github.com/zetdotcom/workflow-agent/pull/3)
