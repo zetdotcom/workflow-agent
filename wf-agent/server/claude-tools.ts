@@ -104,7 +104,10 @@ export async function claudePermission(turn: ProviderTurn, request: Fields, acti
   turn.signal.throwIfAborted();
   if (name === "AskUserQuestion") return answerQuestions(turn, input);
   if (!await statusPathAllowed(turn, name, input)) return deny("This path is outside the authorized status scope.");
-  const detail = displayText(JSON.stringify(input, null, 2));
+  const detail = JSON.stringify(input, (key, value: unknown) => {
+    if (/(?:api[_-]?key|token|password|secret|authorization)$/i.test(key)) return "[redacted]";
+    return typeof value === "string" ? displayText(value) : value;
+  }, 2);
   if (detail.length > 64_000) return deny("This operation is too large to review. Submit a smaller operation for approval.");
   const statusWrite = turn.workflow.action.command === "status" && (name === "Edit" || name === "Write");
   const reply = await turn.callbacks.prompt({ id: randomUUID(), title: "Allow Claude Code to use " + name + "?", detail }, statusWrite ? "status-write" : undefined);

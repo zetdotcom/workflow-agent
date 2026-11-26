@@ -13,7 +13,7 @@ import { chromium } from "playwright-core";
 import { startServer } from "../dist/server/server.js";
 import { commitWorkflowFixture, fixture } from "./fixture.mjs";
 import { plannedCheckout, workflowDocument } from "./provider-tools-project.mjs";
-import { boardScenario, draftPullRequest, examplePullRequest, permissionMarker, reconciledStatus, ticketNames } from "./provider-tools-scenario.mjs";
+import { boardScenario, deliveryBlocker, draftPullRequest, examplePullRequest, permissionMarker, privateDiagnostic, reconciledStatus, ticketNames } from "./provider-tools-scenario.mjs";
 
 let browser;
 before(async () => { browser = await chromium.launch(); });
@@ -204,7 +204,7 @@ for (const [provider, label] of [["claude", "Claude Code"], ["copilot", "GitHub 
     assert.equal((await decide(proposal, true)).status, 202);
     view = await wait(item => !item.running);
     assert.equal(view.entries.filter(entry => entry.title === "Draft PR published" && entry.url === draftPullRequest).length, 1);
-    for (const invalid of ["unconfirmed", "wrong-head", "invalid-journal"]) {
+    for (const invalid of ["unconfirmed", "wrong-head", "invalid-journal", "blocked"]) {
       proposal = await propose(invalid);
       assert.equal((await decide(proposal, true)).status, 202);
       view = await wait(item => !item.running);
@@ -212,6 +212,10 @@ for (const [provider, label] of [["claude", "Claude Code"], ["copilot", "GitHub 
       const error = invalid === "invalid-journal" ? /Workflow metadata validation failed\./ : /delivery is unconfirmed/i;
       assert.match(view.entries.at(-1).text, error);
       if (invalid === "invalid-journal") assert.match(view.entries.at(-1).text, /baseline_paths_fingerprint/);
+      if (invalid === "blocked") {
+        assert(view.entries.at(-1).text.includes(deliveryBlocker), "Delivery failure should show the provider's blocker");
+        assert(!view.entries.at(-1).text.includes(privateDiagnostic));
+      }
       assert.equal(view.entries.filter(entry => entry.url).length, 2);
       assert(!view.entries.some(entry => entry.kind === "assistant" && entry.text === "The pull request has been published."));
     }

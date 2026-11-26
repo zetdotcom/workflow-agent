@@ -189,6 +189,21 @@ test("Claude delivery forwards per-operation native approvals, including fresh a
   assert.equal((await request("Bash", { command: "node --version" })).behavior, "deny");
 });
 
+test("Claude redacts quoted credentials in permission previews before forwarding approved input", async t => {
+  peer(t);
+  const { options, run } = await turn(t);
+  const workflow = { action: { command: "to-pr" }, skillDirectory: await fixture(t) };
+  const input = { command: 'TEST_PASSWORD="synthetic credential words" node --version', description: "Inspect the Node version" };
+  options.callbacks.prompt = async prompt => {
+    assert.deepEqual(JSON.parse(prompt.detail), {
+      command: "TEST_PASSWORD=[redacted] node --version", description: input.description
+    });
+    return { approve: true, answers: {} };
+  };
+  const reply = await run("Fixture permission " + JSON.stringify({ name: "Bash", args: input }), { workflow });
+  assert.deepEqual(JSON.parse(reply), { behavior: "allow", updatedInput: input });
+});
+
 test("a missing local Claude executable reports setup and leaves the session unassigned", async t => {
   const { options, confirmed, run } = await turn(t);
   const path = process.env.PATH;

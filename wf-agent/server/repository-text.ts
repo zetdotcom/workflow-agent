@@ -149,8 +149,13 @@ export async function readPublicPage(handle: FileHandle, name: string, offset: n
   const page = await readBytes(handle, start, Math.min(size - start, offset - start + 24_576 + 3), name, signal);
   const used = page.length;
   const decoded = decode(page, start, size, name);
-  if (!offset && size <= 24_576 && !page.includes("-----BEGIN ")) {
+  const checkUnchanged = async () => {
+    const after = await handle.stat({ bigint: true });
+    if (before.size !== after.size || before.ctimeNs !== after.ctimeNs) throw new ChatError(409, "File changed while reading: " + name);
     signal?.throwIfAborted();
+  };
+  if (!offset && size <= 24_576 && !page.includes("-----BEGIN ")) {
+    await checkUnchanged();
     return { path: name, text: displayText(decoded.text), nextOffset: null };
   }
   let first = offset - start;
@@ -183,9 +188,7 @@ export async function readPublicPage(handle: FileHandle, name: string, offset: n
     cursor = part.end;
   }
   if (cursor < end) text += page.toString("utf8", cursor - start, last);
-  const after = await handle.stat({ bigint: true });
-  if (before.size !== after.size || before.ctimeNs !== after.ctimeNs) throw new ChatError(409, "File changed while reading: " + name);
+  await checkUnchanged();
   const next = Math.max(cursor, end);
-  signal?.throwIfAborted();
   return { path: name, text, nextOffset: next < size ? next : null };
 }

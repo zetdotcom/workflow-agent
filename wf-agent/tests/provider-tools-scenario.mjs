@@ -8,15 +8,17 @@ import { checkoutStatus, completeTestDelivery } from "./provider-tools-project.m
 export const changeName = "SHOP-8-checkout";
 export const ticketNames = {
   ready: "001-ready", draft: "002-draft", unconfirmed: "003-unconfirmed", "wrong-head": "004-wrong-head",
-  "invalid-journal": "005-invalid-journal", "invalid-status": "006-invalid-status"
+  "invalid-journal": "005-invalid-journal", "invalid-status": "006-invalid-status", blocked: "007-blocked"
 };
 export const examplePullRequest = "https://example.test/team/board/pull/17";
 export const draftPullRequest = "https://example.test/team/board/pull/18";
 export const permissionMarker = "Reviewed reconciliation patch content";
+export const deliveryBlocker = "Complete the required dependency before retrying this ticket.";
+export const privateDiagnostic = "synthetic private diagnostic";
 export const reconciledStatus = provider => checkoutStatus(Object.values(ticketNames), permissionMarker + " from " + provider + ".");
 
 export async function boardScenario({ input, cwd, tool, permission, provider }) {
-  const command = /Board parity: (read|status|ready|draft|unconfirmed|wrong-head|invalid-journal|invalid-status)\b/.exec(input)?.[1];
+  const command = /Board parity: (read|status|ready|draft|unconfirmed|wrong-head|invalid-journal|invalid-status|blocked)\b/.exec(input)?.[1];
   if (command === "read") {
     const found = await tool("find_files", { query: "receipt.txt" });
     assert.deepEqual(found, ["receipt.txt"]);
@@ -40,6 +42,7 @@ export async function boardScenario({ input, cwd, tool, permission, provider }) 
     return "The status request was handled.";
   }
   assert.equal(action.command, "to-pr");
+  if (action.ticket === ticketNames.blocked) return deliveryBlocker + '\nTEST_PASSWORD="' + privateDiagnostic + '"';
   if (action.ticket !== ticketNames.unconfirmed) {
     const draft = action.ticket === ticketNames.draft;
     await completeTestDelivery(cwd, action, {

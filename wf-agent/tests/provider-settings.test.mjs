@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, realpath, symlink, writeFile } from "node:fs/promises";
+import { mkdir, open, realpath, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
@@ -10,6 +10,7 @@ import { CopilotClient } from "@microsoft/copilot-sdk";
 import { startServer } from "../dist/server/server.js";
 import { RepositoryFiles } from "../dist/server/chat-files.js";
 import { displayText } from "../dist/server/chat-model.js";
+import { readPublicPage } from "../dist/server/repository-text.js";
 import { fixture } from "./fixture.mjs";
 
 function request(server, path, body, origin = server.url) {
@@ -90,6 +91,34 @@ test("keeps safe large files byte-paged, preserves UTF-8 boundaries and rejects 
   const reading = files.read("large", ascii.length - 100, controller.signal);
   setImmediate(() => controller.abort(new Error("Stopped paged file read.")));
   await assert.rejects(reading, /Stopped paged file read/);
+});
+
+test("rejects a short file that grows after its size was sampled", async t => {
+  const root = await fixture(t);
+  const path = join(root, "short.txt");
+  const prefix = 'password="synthetic credential words';
+  await writeFile(path, ".".repeat(prefix.length));
+  const file = await open(path, "r");
+  let changed = false;
+  const reader = {
+    read: file.read.bind(file),
+    async stat(options) {
+      const snapshot = await file.stat(options);
+      if (!changed) {
+        changed = true;
+        await writeFile(path, prefix + ' with a closing quote"\nPublic continuation.\n');
+      }
+      return snapshot;
+    }
+  };
+  try {
+    await assert.rejects(readPublicPage(reader, "short.txt", 0), { status: 409, message: /File changed while reading/ });
+  } finally {
+    await file.close();
+  }
+  assert.deepEqual(await new RepositoryFiles(await realpath(root)).read("short.txt"), {
+    path: "short.txt", text: "password=[redacted]\nPublic continuation.\n", nextOffset: null
+  });
 });
 
 async function isolatedState(t) {

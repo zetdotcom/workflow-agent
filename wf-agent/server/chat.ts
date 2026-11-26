@@ -15,6 +15,7 @@ function field(value: unknown, name: string, max = 1024) {
 }
 
 const label = (action: WorkflowAction) => ["wf", action.command, action.change, action.ticket].filter(Boolean).join(" ");
+const workflowOutcomeLimit = 12_000;
 
 async function verifyAction(files: RepositoryFiles, action: WorkflowAction) {
   const current = await prepareAction(files, action.command, action.change, action.ticket ?? "", action.reason, action.remote);
@@ -114,7 +115,7 @@ export class BoardChats {
       const input = ["Run the installed wf skill for this authorized invocation.",
         JSON.stringify({ command: proposed.command, change: proposed.change, ticket: proposed.ticket, checkout: this.files.root, directory: proposed.directory, branch: proposed.branch,
           remote: proposed.remote, destinations: proposed.destinations, approvedHead: proposed.head, baselineHead: proposed.baselineHead, specIdentity: proposed.specIdentity, planIdentity: proposed.planIdentity }),
-        proposed.command === "to-pr" ? "The user authorizes implementation through PR publication after all required checks pass. A failed check blocks publication. Follow the wf skill's qualified-draft rules for unavailable runtime checks. Honor all repository and host policies." : "Follow the status reference, including active STATUS.md reconciliation when needed."].join("\n");
+        proposed.command === "to-pr" ? "The user authorizes implementation through PR publication after all required checks pass. A failed check blocks publication. Follow the wf skill's qualified-draft rules for unavailable runtime checks. Honor all repository and host policies. If blocked, report the cause and the next action." : "Follow the status reference, including active STATUS.md reconciliation when needed."].join("\n");
       this.launch(id, run.id, run.provider, undefined, input, proposed);
     }
   }
@@ -200,6 +201,7 @@ export class BoardChats {
     };
     const execute = async () => {
       let outcome: string | undefined;
+      let deliveryReport: string | undefined;
       let failed = false;
       try {
         if (this.closing) throw new Error("Board is shutting down.");
@@ -224,7 +226,9 @@ export class BoardChats {
         }
         if (action) {
           if (action.command === "to-pr") {
-            if (/^to-pr prerequisite unavailable: (fresh-agent-dispatch|pull-request-create)$/.test(reply.trim())) throw new Error(reply.trim());
+            const report = reply.trim();
+            if (/^to-pr prerequisite unavailable: (fresh-agent-dispatch|pull-request-create)$/.test(report)) throw new Error(report);
+            deliveryReport = report;
             const receipt = await deliveryReceipt(this.files, action);
             await validateWorkflow(this.files.root, stop.signal);
             stop.signal.throwIfAborted();
@@ -238,12 +242,15 @@ export class BoardChats {
       } catch (error) {
         failed = true;
         outcome = stop.signal.aborted ? "Run interrupted." : message(error);
-        entry({ id: "failure", kind: "error", title: action ? "Workflow stopped" : "Chat stopped", text: outcome });
+        const report = deliveryReport && !stop.signal.aborted
+          ? "\n\n" + chatProviders[provider] + " report (unverified)\n" + displayText(deliveryReport).slice(0, workflowOutcomeLimit)
+          : "";
+        entry({ id: "failure", kind: "error", title: action ? "Workflow stopped" : "Chat stopped", text: outcome + report });
       } finally {
         stop.abort();
         this.store.edit(id, state => {
           if (state.run?.id !== run) return;
-          if (action) state.lastOutcome = displayText(label(action) + "\n" + outcome).slice(0, 12000);
+          if (action) state.lastOutcome = displayText(label(action) + "\n" + outcome).slice(0, workflowOutcomeLimit);
           if (failed) delete state.proposal;
           delete state.run;
           delete state.prompt;
