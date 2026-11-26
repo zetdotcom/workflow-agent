@@ -100,9 +100,9 @@ export class ChatStore {
     return id;
   }
 
-  messageProvider(id: string) {
+  messageProvider(id: string, workflow = false) {
     const provider = this.configuredProvider(this.read(id).provider);
-    this.storage.checkProviderHome(provider);
+    this.storage.checkProviderHome(provider, workflow);
     return provider;
   }
 

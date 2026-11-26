@@ -216,6 +216,7 @@ export function ChatDock({ host, revision, selectedPath, selection, projectProvi
         {current?.running && <p className="chat-working">{providerName} is working…</p>}
         {proposal && <div className="chat-approval"><strong>Authorize workflow</strong>
           <code>{["wf", proposal.command, proposal.change, proposal.ticket].filter(Boolean).join(" ")}</code>
+          <small>Runs with {providerName}</small>
           <p>{proposal.reason}</p><small>{proposal.stage} · {proposal.directory}</small>
           {proposal.branch && <small>Branch {proposal.branch} · {proposal.head?.slice(0, 9)}</small>}
           {proposal.remote && <small>Publish to {proposal.remote} · {proposal.destinations?.join(", ")}</small>}

@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p web && tsc -p server && vite build web --outDir ../dist/web --emptyOutDir",
+    "build": "tsc -p web && tsc -p server && vite build web --outDir ../dist/web --emptyOutDir && node scripts/bundle-workflow.mjs",
     "test": "npm run build && node scripts/board-test.mjs",
     "test:browser:install": "node scripts/board-test.mjs install",
     "prepack": "npm run build"

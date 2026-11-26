@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, realpath, symlink, writeFile } from "node:fs/promises";
+import { mkdir, open, realpath, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { CopilotClient } from "@microsoft/copilot-sdk";
 import { startServer } from "../dist/server/server.js";
+import { RepositoryFiles } from "../dist/server/chat-files.js";
+import { displayText } from "../dist/server/chat-model.js";
+import { readPublicPage } from "../dist/server/repository-text.js";
 import { fixture } from "./fixture.mjs";
 
 function request(server, path, body, origin = server.url) {
@@ -15,6 +18,108 @@ function request(server, path, body, origin = server.url) {
     method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body)
   });
 }
+
+test("redacts complete credentials before paging, including requests that start inside a field", async t => {
+  const root = await realpath(await fixture(t));
+  const files = new RepositoryFiles(root);
+  const page = 24_576;
+  const token = "ghp_" + "fixture".repeat(7);
+  const assigned = "A".repeat(90_000) + " synthetic quoted tail";
+  const pemBody = ("syntheticBase64Line".repeat(8) + "\n").repeat(900);
+  const samples = [
+    { source: token, hidden: "fixture", at: 16 },
+    { source: 'password = "' + assigned + '"', hidden: "synthetic quoted tail", at: 85_000 },
+    { source: 'secretoken = "' + assigned + '"', hidden: "synthetic quoted tail", at: 85_000 },
+    { source: "-----BEGIN EC PRIVATE KEY-----\n" + pemBody + "-----END EC PRIVATE KEY-----", hidden: "syntheticBase64Line", at: 80_000 },
+    { source: "Bearer\n " + "field".repeat(12), hidden: "field", at: 28 },
+    { source: "Authorization: Basic " + "field".repeat(12), hidden: "field", at: 28 },
+    { source: "https://user:" + "sensitive".repeat(9) + "@example.test/", hidden: "sensitive", at: 40 }
+  ];
+  for (const { source, hidden, at } of samples) {
+    const prefix = "entry. ".repeat(Math.floor((page - 9) / 7));
+    const sourceText = prefix + source + "\nPublic continuation.\n";
+    await writeFile(join(root, "text"), sourceText);
+    let offset = 0, assembled = "";
+    do {
+      const result = await files.read("text", offset);
+      assert(!result.text.includes(hidden));
+      assembled += result.text;
+      offset = result.nextOffset;
+    } while (offset !== null);
+    assert.equal(assembled, displayText(sourceText));
+    const interior = await files.read("text", Buffer.byteLength(prefix) + at);
+    assert(!interior.text.includes(hidden));
+    assert(!interior.text.includes("AAAA"));
+    assert(interior.text.endsWith("Public continuation.\n") || interior.nextOffset !== null);
+  }
+  const malformedKey = "-----BEGIN PRIVATE KEY-----\nunfinished synthetic material";
+  await writeFile(join(root, "text"), malformedKey);
+  assert(!((await files.read("text", 30)).text.includes("unfinished")));
+  const nested = ("-----BEGIN PRIVATE KEY-----\n" + "synthetic material\n").repeat(12_000);
+  await writeFile(join(root, "nested"), nested);
+  assert.deepEqual(await files.read("nested", Buffer.byteLength(nested) - 100), { path: "nested", text: "", nextOffset: null });
+  const compound = "sk-" + "sk-test-part-".repeat(55_000);
+  await writeFile(join(root, "compound"), compound);
+  const inside = await files.read("compound", 100_000);
+  assert.deepEqual(inside, { path: "compound", text: "", nextOffset: compound.length - 1 });
+  assert.deepEqual(await files.read("compound", inside.nextOffset), { path: "compound", text: "-", nextOffset: null });
+});
+
+test("keeps safe large files byte-paged, preserves UTF-8 boundaries and rejects malformed or binary content", async t => {
+  const root = await realpath(await fixture(t));
+  const files = new RepositoryFiles(root);
+  const page = 24_576;
+  const ascii = "long ordinary line. ".repeat(145_000);
+  await writeFile(join(root, "large"), ascii);
+  for (const offset of [0, page, page * 70, ascii.length - 16, ascii.length + 4]) {
+    const result = await files.read("large", offset);
+    assert.equal(result.text, ascii.slice(offset, offset + page));
+    assert.equal(result.nextOffset, offset + page < ascii.length ? offset + page : null);
+  }
+  const prefix = ".".repeat(page - 2);
+  await writeFile(join(root, "unicode"), prefix + "🌏łąka");
+  const first = await files.read("unicode");
+  assert.equal(first.text, prefix);
+  assert.equal(first.nextOffset, page - 2);
+  assert.equal((await files.read("unicode", first.nextOffset)).text, "🌏łąka");
+  assert.equal((await files.read("unicode", page)).text, "łąka");
+  for (const data of [Buffer.from([0x41, 0x00, 0x42]), Buffer.from([0x41, 0xc0, 0xaf]), Buffer.from([0xe2, 0x82]), Buffer.alloc(page + 1, 0x80)]) {
+    await writeFile(join(root, "bad"), data);
+    await assert.rejects(files.read("bad"), error => error.status === 400 && /binary|UTF-8/i.test(error.message));
+  }
+  const controller = new AbortController();
+  const reading = files.read("large", ascii.length - 100, controller.signal);
+  setImmediate(() => controller.abort(new Error("Stopped paged file read.")));
+  await assert.rejects(reading, /Stopped paged file read/);
+});
+
+test("rejects a short file that grows after its size was sampled", async t => {
+  const root = await fixture(t);
+  const path = join(root, "short.txt");
+  const prefix = 'password="synthetic credential words';
+  await writeFile(path, ".".repeat(prefix.length));
+  const file = await open(path, "r");
+  let changed = false;
+  const reader = {
+    read: file.read.bind(file),
+    async stat(options) {
+      const snapshot = await file.stat(options);
+      if (!changed) {
+        changed = true;
+        await writeFile(path, prefix + ' with a closing quote"\nPublic continuation.\n');
+      }
+      return snapshot;
+    }
+  };
+  try {
+    await assert.rejects(readPublicPage(reader, "short.txt", 0), { status: 409, message: /File changed while reading/ });
+  } finally {
+    await file.close();
+  }
+  assert.deepEqual(await new RepositoryFiles(await realpath(root)).read("short.txt"), {
+    path: "short.txt", text: "password=[redacted]\nPublic continuation.\n", nextOffset: null
+  });
+});
 
 async function isolatedState(t) {
   const old = process.env.XDG_STATE_HOME;
@@ -138,7 +243,7 @@ test("sends only the selected board document and validated text to the project's
 
   const prompts = [];
   const resumed = [];
-  const session = { sessionId: randomUUID(), sendAndWait: async ({ prompt }) => {
+  const session = { sessionId: randomUUID(), permissionModeResult: { mode: "manual" }, sendAndWait: async ({ prompt }) => {
     prompts.push(JSON.parse(prompt.split("\n\n").at(-1)));
     return { data: { content: "Received board context" } };
   } };

@@ -1,22 +1,17 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, realpath, symlink, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdir, readFile, realpath, rename, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { startServer } from "../dist/server/server.js";
-import { RepositoryFiles } from "../dist/server/chat-files.js";
+import { prepareAction, RepositoryFiles } from "../dist/server/chat-files.js";
 import { commitWorkflowFixture, fixture, peerEnvironment } from "./fixture.mjs";
+import { plannedCheckout, workflowDocument } from "./provider-tools-project.mjs";
 
 async function plannedRepository(t) {
   const repo = await fixture(t);
-  const change = join(repo, ".workflow", "changes", "SHOP-8-checkout");
-  await mkdir(change, { recursive: true });
-  await writeFile(join(change, "CONTEXT.md"), "# Checkout\n\n## Goal\n\nSend receipts.");
-  for (const id of ["001-receipts", "002-fails", "003-unverified"]) {
-    const dir = join(change, "2.todo", id);
-    await mkdir(dir, { recursive: true });
-    for (const name of ["TICKET.md", "SPEC.md", "PLAN.md", "PLAN-BRIEF.md"]) await writeFile(join(dir, name), "# " + id + "\n\n" + name);
-  }
+  const change = await plannedCheckout(repo, ["001-receipts", "002-fails", "003-unverified"]);
   commitWorkflowFixture(repo);
   return { repo, change };
 }
@@ -38,6 +33,32 @@ test("searches repository-wide with the selected file first and enforces the rep
   await assert.rejects(index.read("../outside.md"), /inside this repository/);
   await assert.rejects(index.read("linked/outside.md"), /inside this repository/);
   await assert.rejects(index.read(".git/internal"), /inside this repository/);
+});
+
+test("resumes a ticket delivery only when the approved branch contains its original baseline", async t => {
+  const { repo, change } = await plannedRepository(t);
+  const files = new RepositoryFiles(await realpath(repo));
+  const prepare = () => prepareAction(files, "to-pr", "SHOP-8", "001", "Resume this delivery");
+  const first = await prepare();
+  const current = join(change, "3.in-progress", first.ticket);
+  await rename(join(change, "2.todo", first.ticket), current);
+  const journal = head => writeFile(join(current, "TO-PR.md"), [
+    "---", "spec_identity: " + first.specIdentity, "plan_identity: " + first.planIdentity,
+    "baseline_branch: " + first.branch, "baseline_head: " + head, "---", "# Delivery"
+  ].join("\n"));
+  const git = args => execFileSync("git", ["-c", "user.name=Board Test", "-c", "user.email=board@example.test",
+    "-c", "commit.gpgsign=false", ...args], { cwd: repo, encoding: "utf8" }).trim();
+  git(["commit", "--allow-empty", "-m", "test: advance the branch"]);
+  await journal(first.head);
+  const resumed = await prepare();
+  assert.equal(resumed.baselineHead, first.head);
+  assert.notEqual(resumed.head, first.head);
+
+  const unrelated = git(["commit-tree", "HEAD^{tree}", "-m", "test: create unrelated history"]);
+  for (const invalid of [unrelated, "0".repeat(first.head.length)]) {
+    await journal(invalid);
+    await assert.rejects(prepare(), /baseline is missing from this branch's history/);
+  }
 });
 
 test("routes project actions through Codex, persists chats, binds approvals, and records only evidenced delivery", async t => {
@@ -79,7 +100,7 @@ test("routes project actions through Codex, persists chats, binds approvals, and
   await server.close(); server = await startServer(repo);
   assert.equal((await state()).proposal.id, view.proposal.id);
   const plan = join(change, "2.todo", "001-receipts", "PLAN.md");
-  await writeFile(plan, "# A revised plan");
+  await writeFile(plan, workflowDocument("# A revised plan"));
   assert.equal((await post(url + "/decision", { id: view.proposal.id, approve: true })).status, 409);
   assert.equal((await recorded()).filter(call => call.event === "execute").length, 0);
   assert.equal((await post(url + "/decision", { id: view.proposal.id, approve: false })).status, 202);

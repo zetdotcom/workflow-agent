@@ -33,6 +33,7 @@ validate_document() {
   fi
 
   while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
     line_number=$((line_number + 1))
     if (( line_number == 1 )); then
       first_line="$line"
@@ -70,6 +71,7 @@ validate_archive_summary() {
   [[ -f "$file" ]] || return
 
   while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
     line_number=$((line_number + 1))
     (( line_number == 1 )) && continue
     [[ "$line" == "---" ]] && break
@@ -99,6 +101,7 @@ validate_to_pr() {
   [[ -f "$file" ]] || return
 
   while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
     line_number=$((line_number + 1))
     (( line_number == 1 )) && continue
     [[ "$line" == "---" ]] && break
