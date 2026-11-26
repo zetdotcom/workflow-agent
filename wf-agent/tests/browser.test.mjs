@@ -8,6 +8,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { commitWorkflowFixture, fixture, peerEnvironment } from "./fixture.mjs";
+import { plannedCheckout } from "./provider-tools-project.mjs";
 
 const launcher = fileURLToPath(new URL("../bin/wf-agent.js", import.meta.url));
 let browser;
@@ -300,9 +301,7 @@ test("recovers after an unreadable workflow file is repaired", async t => {
 test("uses the bottom composer from ticket details, mentions repository files, and reopens independent chats", async t => {
   const repo = await fixture(t);
   const env = await peerEnvironment(t);
-  const change = await createChange(repo, "SHOP-8-checkout", "Checkout");
-  const ticket = await createTicket(change, "2.todo", "001-receipts", "Receipts");
-  for (const name of ["SPEC.md", "PLAN.md", "PLAN-BRIEF.md"]) await writeFile(join(ticket, name), "# Receipts\n\n" + name);
+  await plannedCheckout(repo, ["001-receipts"]);
   commitWorkflowFixture(repo);
   await writeFile(join(repo, "orders.js"), "export const orders = [];");
   await withBoard(repo, async page => {

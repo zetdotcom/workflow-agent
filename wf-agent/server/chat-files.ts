@@ -8,6 +8,7 @@ import { parse } from "yaml";
 import { ChatError, displayText, type BoardSelection, type WorkflowAction } from "./chat-model.js";
 import { contextPath } from "./model.js";
 import { readBoard } from "./repository.js";
+import { readPublicPage } from "./repository-text.js";
 
 const git = promisify(execFile);
 
@@ -85,9 +86,11 @@ export class RepositoryFiles {
     } finally { await handle.close(); }
   }
 
-  async read(name: string, offset = 0) {
-    const { bytes, nextOffset } = await this.bytes(name, offset, 24_576);
-    return { path: name, text: displayText(bytes.toString("utf8")), nextOffset };
+  async read(name: string, offset = 0, signal?: AbortSignal) {
+    if (!Number.isSafeInteger(offset) || offset < 0) throw new ChatError(400, "Invalid file offset.");
+    const handle = await open(await this.file(name), "r");
+    try { return await readPublicPage(handle, name, offset, signal); }
+    finally { await handle.close(); }
   }
 
   async discussionFiles(selection: BoardSelection | undefined, attachments: string[]) {
@@ -128,6 +131,12 @@ function destination(address: string) {
   const url = new URL(address);
   url.username = ""; url.password = ""; url.search = ""; url.hash = "";
   return displayText(url.href);
+}
+
+export async function ticketPlanIdentities(files: RepositoryFiles, directory: string) {
+  const paths = await Promise.all(["SPEC.md", "PLAN.md"].map(name => files.file(directory + "/" + name)));
+  const { stdout } = await git("git", ["hash-object", "--", ...paths], { cwd: files.root, windowsHide: true });
+  return stdout.trim().split(/\s+/);
 }
 
 export async function prepareAction(files: RepositoryFiles, command: WorkflowAction["command"], changeId: string, ticketId: string, reason: string, requestedRemote?: string): Promise<WorkflowAction> {
@@ -174,7 +183,7 @@ export async function prepareAction(files: RepositoryFiles, command: WorkflowAct
     const gitValue = async (args: string[]) => (await git("git", args, { cwd: files.root, windowsHide: true })).stdout.trim();
     const [branch, head, identities, gitRoot, remotes] = await Promise.all([
       gitValue(["branch", "--show-current"]), gitValue(["rev-parse", "--verify", "HEAD"]),
-      gitValue(["hash-object", "--", directory + "/SPEC.md", directory + "/PLAN.md"]), gitValue(["rev-parse", "--show-toplevel"]), gitValue(["remote"])
+      ticketPlanIdentities(files, directory), gitValue(["rev-parse", "--show-toplevel"]), gitValue(["remote"])
     ]);
     if (await realpath(gitRoot) !== files.root) throw new ChatError(422, "Run wf-agent from the Git repository root to authorize to-pr.");
     if (!branch) throw new ChatError(422, "Select the intended Git branch before authorizing to-pr.");
@@ -185,14 +194,19 @@ export async function prepareAction(files: RepositoryFiles, command: WorkflowAct
     const urls = await gitValue(["remote", "get-url", "--push", "--all", "--", remote]);
     action.remote = remote;
     action.destinations = urls.split(/\r?\n/).map(destination);
-    [action.specIdentity, action.planIdentity] = identities.split(/\s+/);
+    [action.specIdentity, action.planIdentity] = identities;
+    action.baselineHead = head;
     if (stage === "In Progress") {
       const journal = await readFile(await files.file(directory + "/TO-PR.md"), "utf8");
       const header = /^---\r?\n([\s\S]*?)\r?\n---/.exec(journal);
       const metadata = header && parse(header[1], { schema: "failsafe" });
-      if (metadata?.spec_identity !== action.specIdentity || metadata?.plan_identity !== action.planIdentity || metadata?.baseline_branch !== branch) {
+      if (metadata?.spec_identity !== action.specIdentity || metadata?.plan_identity !== action.planIdentity || metadata?.baseline_branch !== branch ||
+          typeof metadata.baseline_head !== "string" || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(metadata.baseline_head)) {
         throw new ChatError(422, "The recorded to-pr run does not match this branch, specification, and plan. Review the ticket before resuming.");
       }
+      try { await gitValue(["merge-base", "--is-ancestor", metadata.baseline_head, head]); }
+      catch { throw new ChatError(422, "The recorded to-pr baseline is missing from this branch's history. Review the ticket before resuming."); }
+      action.baselineHead = metadata.baseline_head;
     }
     action.branch = branch;
     action.head = head;

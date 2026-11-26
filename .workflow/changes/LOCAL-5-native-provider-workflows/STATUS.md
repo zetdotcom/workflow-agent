@@ -7,8 +7,8 @@ updated: 2026-11-26
 
 ### In Progress
 
-### Todo
-
 - `001` Use board tools and execute workflows with the selected provider
+
+### Todo
 
 ### Done

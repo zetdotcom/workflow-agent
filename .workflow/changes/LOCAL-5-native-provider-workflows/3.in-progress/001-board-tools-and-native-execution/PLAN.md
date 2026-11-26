@@ -34,3 +34,5 @@ The two requested stages share the provider dispatch and permission boundary. Sh
 | Execute without Codex | Exercise native CLI and SDK with absent Codex, actual checkout effects, scope of permission prompts and fresh-agent capability. Inspect npm tarball. |
 | Stop, restart and report delivery | Stop/cancel tests, original-session continuation, matching ready/draft journal and false-delivery rejection. |
 | Protected behavior | Run `npm test` in `wf-agent`, `./scripts/verify.sh`, workflow validator and cross-platform CI. Record external credential limitations separately. |
+
+Both implementation stages passed local verification on 2026-11-26. The scenario results and environment are recorded in `PROGRESS.md`.

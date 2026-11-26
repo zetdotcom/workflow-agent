@@ -40,6 +40,9 @@ export async function peerEnvironment(t) {
   await mkdir(windows, { recursive: true });
   await writeFile(join(windows, "package.json"), '{"type":"module"}');
   await copyFile(program, join(windows, "codex.js"));
+  const project = "provider-tools-project.mjs";
+  await copyFile(new URL(project, import.meta.url), join(windows, project));
+  await copyFile(new URL(project, import.meta.url), join(bin, project));
   const entry = join(bin, "codex");
   await writeFile(entry, "#!/usr/bin/env node\n" + await readFile(program, "utf8"));
   await chmod(entry, 0o755);

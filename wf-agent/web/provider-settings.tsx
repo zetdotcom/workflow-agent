@@ -65,7 +65,7 @@ export function ProviderForm({ provider, setup, save, close }: {
           setDraft({ choice: id, expected: provider }); setError("");
         }} />{chatProviders[id]}</label>)}</div>
     </fieldset>
-    <p>Codex also supports repository search and approved workflow actions. This project preference is saved locally outside the repository.</p>
+    <p>Each provider can search this repository and run workflows you approve. This project preference is saved locally outside the repository.</p>
     {(error || stale) && <p role="alert">{error || "Another window changed the project provider. Select a provider again to update it."}</p>}
     <div className="provider-actions"><button type="button" disabled={busy} onClick={close}>{setup ? "Set up later" : "Cancel"}</button>
       <button type="submit" className="primary" disabled={!choice || choice === provider || busy || stale}>Save provider</button></div>

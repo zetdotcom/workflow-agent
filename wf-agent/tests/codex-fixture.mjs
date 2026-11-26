@@ -1,8 +1,9 @@
 // A subprocess peer for deterministic app-server contract tests. It never contacts a model or a remote.
 import { randomUUID } from "node:crypto";
-import { appendFile, mkdir, rename, writeFile } from "node:fs/promises";
+import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
+import { completeTestDelivery } from "./provider-tools-project.mjs";
 
 const send = packet => process.stdout.write(JSON.stringify(packet) + "\n");
 const pending = new Map();
@@ -35,14 +36,7 @@ async function turn(params, turnId) {
       if (refused) failure = "Required checks failed.";
       else if (action.ticket === "003-unverified") text = "The PR was created.";
       else {
-        const root = join(cwd, ".workflow", "changes", action.change);
-        const dir = join(root, "2.todo", action.ticket);
-        await writeFile(join(dir, "TO-PR.md"), ["---", "state: delivered-to-review", "delivery_kind: ready",
-          "completion_recorded: yes", "push_result: success", "runtime_limitation_recorded: no", "active_phase: 0", "completed_phases: 1",
-          "spec_identity: " + action.specIdentity, "plan_identity: " + action.planIdentity, "baseline_branch: " + action.branch,
-          "pr_url: https://example.test/pull/17", "---", "# Delivered"].join("\n"));
-        await mkdir(join(root, "4.done"), { recursive: true });
-        await rename(dir, join(root, "4.done", action.ticket));
+        await completeTestDelivery(cwd, action, { url: "https://example.test/pull/17" });
         notify("turn/diff/updated", { ...base, diff: "diff --git a/calendar.ts b/calendar.ts\n+export const calendar = true;" });
         notify("item/completed", { ...base, item: { type: "collabAgentToolCall", id: "phase", tool: "spawnAgent", status: "completed", receiverThreadIds: [threadId + "-phase"] } });
         text = "The checks passed and the pull request was created.";

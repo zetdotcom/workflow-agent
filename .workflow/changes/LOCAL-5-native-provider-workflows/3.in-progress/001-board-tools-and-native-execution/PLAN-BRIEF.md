@@ -13,8 +13,11 @@ flowchart LR
   Preview -->|User authorizes| Claim[Check provider, inputs and checkout lock]
   Claim --> Worker[Fresh session of the selected provider]
   Worker <--> Consent[Native permission dialog]
-  Worker --> Journal[Workflow result or ticket delivery journal]
-  Journal --> Chat
+  Worker --> Status[Reconciled status]
+  Worker --> Journal[Completed ticket delivery journal]
+  Status --> Validate[Board validates workflow metadata]
+  Journal --> Validate
+  Validate --> Chat
 ```
 
 Claude uses its CLI's bidirectional stream and Copilot uses its SDK's custom tools and native workers. Both receive the canonical packaged wf skill on approval. Verify the native integrations in disposable checkouts, exercise denial and restart, inspect the actual packaged board, and keep external sign-in and real publication evidence explicit.

@@ -66,6 +66,8 @@ write_document "$CHANGE/STATUS.md" no
 write_document "$CHANGE/1.draft/001-draft/TICKET.md"
 write_document "$CHANGE/1.draft/001-draft/SPEC.md"
 "$VALIDATOR" "$REPO" >/dev/null
+printf '%s\r\n' '---' "updated: $TODAY" '---' '# Windows checkout' > "$CHANGE/STATUS.md"
+"$VALIDATOR" "$REPO" >/dev/null
 printf '%s\n' '---' 'created: 2026-10-09' 'updated: invalid' '---' '# Behavior Specification' > "$CHANGE/1.draft/001-draft/SPEC.md"
 expect_failure 'invalid or missing updated date: .workflow/changes/PROJ-123-checkout/1.draft/001-draft/SPEC.md'
 write_document "$CHANGE/1.draft/001-draft/SPEC.md"

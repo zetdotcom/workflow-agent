@@ -54,10 +54,10 @@ export class ProjectState {
     return this.external(resolve(this.stateHome, "wf-agent", ...parts), "XDG_STATE_HOME");
   }
 
-  checkProviderHome(provider: ChatProvider) {
+  checkProviderHome(provider: ChatProvider, workflow: boolean) {
     if (provider === "codex") this.external(resolve(this.repository, process.env.CODEX_HOME || join(homedir(), ".codex")), "CODEX_HOME");
     if (provider === "claude") {
-      const cwd = this.location(this.checkoutKey, "providers", "claude");
+      const cwd = workflow ? this.repository : this.location(this.checkoutKey, "providers", "claude");
       this.external(resolve(cwd, process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude")), "CLAUDE_CONFIG_DIR");
     }
   }
