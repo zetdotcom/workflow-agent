@@ -1,4 +1,3 @@
-import { isUtf8 } from "node:buffer";
 import type { FileHandle } from "node:fs/promises";
 import { ChatError, displayText } from "./chat-model.js";
 
@@ -15,6 +14,15 @@ async function readBytes(handle: FileHandle, start: number, length: number, name
   return bytes;
 }
 
+function decode(bytes: Buffer, start: number, size: number, name: string) {
+  let head = 0;
+  if (start) while (head < 3 && (bytes[head] & 0xc0) === 0x80) head++;
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes.subarray(head), { stream: start + bytes.length < size });
+    return { head, text };
+  } catch { throw new ChatError(400, "Choose a UTF-8 text file: " + name); }
+}
+
 // Offsets are file bytes. Inspect complete credential fields before selecting a page, even when
 // their beginning or end is far from the requested offset. The two windows never retain a whole file.
 class FileText {
@@ -28,15 +36,10 @@ class FileText {
     if (position < this.origin || position + Math.min(minimum, this.size - position) > this.origin + this.text.length) {
       const start = Math.max(0, position - 3);
       const bytes = await readBytes(this.handle, start, Math.min(64 * 1024, this.size - start), this.name, this.signal);
-      let head = 0;
-      if (start) while (head < 3 && (bytes[head] & 0xc0) === 0x80) head++;
-      let decoded: string;
-      try {
-        decoded = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes.subarray(head), { stream: start + bytes.length < this.size });
-      } catch { throw new ChatError(400, "Choose a UTF-8 text file: " + this.name); }
-      this.origin = start + head;
+      const decoded = decode(bytes, start, this.size, this.name);
+      this.origin = start + decoded.head;
       // Redaction syntax is ASCII. Preserve UTF-8 byte offsets and Unicode whitespace for its character classes.
-      this.text = decoded.replace(/[^\x00-\x7f]/gu, character => (/\s/u.test(character) ? " " : "\x80").repeat(Buffer.byteLength(character)));
+      this.text = decoded.text.replace(/[^\x00-\x7f]/gu, character => (/\s/u.test(character) ? " " : "\x80").repeat(Buffer.byteLength(character)));
     }
     return this.text.slice(position - this.origin);
   }
@@ -69,7 +72,7 @@ class FileText {
   }
 }
 
-type Mask = { start: number; end: number; replacement: string; incomplete?: boolean };
+type Mask = { start: number; end: number; replacement: string };
 // The capture order follows displayText. A zero-width lookahead also finds overlapping names such as "secretoken".
 const credentialOpeners = /(?=(-----BEGIN )|(https?:\/\/)|(Bearer|Basic)|(api[_-]?key|token|password|secret|authorization)|(sk-|gh[pousr]_|github_pat_|xox[baprs]-|AKIA))/gi;
 async function credential(file: FileText, at: number, prefix: string): Promise<Mask | undefined> {
@@ -90,7 +93,7 @@ async function credential(file: FileText, at: number, prefix: string): Promise<M
       if (matched === length) return mask(at, tag + length, "[redacted private key]");
     }
     // An unterminated private key is unsafe to expose.
-    return { ...mask(at, file.size, "[redacted private key]"), incomplete: true };
+    return mask(at, file.size, "[redacted private key]");
   }
   if (/^https?:/i.test(prefix)) {
     const end = await file.until(after, /[\/\s?#@]/);
@@ -145,9 +148,10 @@ export async function readPublicPage(handle: FileHandle, name: string, offset: n
   const start = Math.max(0, offset - 3);
   const page = await readBytes(handle, start, Math.min(size - start, offset - start + 24_576 + 3), name, signal);
   const used = page.length;
+  const decoded = decode(page, start, size, name);
   if (!offset && size <= 24_576 && !page.includes("-----BEGIN ")) {
-    if (!isUtf8(page)) throw new ChatError(400, "Choose a UTF-8 text file: " + name);
-    return { path: name, text: displayText(page.toString("utf8")), nextOffset: null };
+    signal?.throwIfAborted();
+    return { path: name, text: displayText(decoded.text), nextOffset: null };
   }
   let first = offset - start;
   while (first < used && (page[first] & 0xc0) === 0x80) first++;
@@ -166,8 +170,7 @@ export async function readPublicPage(handle: FileHandle, name: string, offset: n
     // A replacement consumes its input for this and later rules. Nested openers must never rescan it to EOF.
     for (let rule = marker.rule; rule < consumed.length; rule++) consumed[rule] = Math.max(consumed[rule], part.end);
     if (part.end <= start + first || part.start >= end) continue;
-    // The shared redactor handles complete fields. Only trim a field here if the page splits it or the key is incomplete.
-    if (!part.incomplete && marker.at >= start + first && part.end <= end) continue;
+    // Apply all intersecting masks together. A split assignment can otherwise remove the "Basic" prefix of a second match.
     const position = Math.max(start + first, part.start);
     const old = masks.get(position);
     if (!old || old.end < part.end) masks.set(position, part);
@@ -184,5 +187,5 @@ export async function readPublicPage(handle: FileHandle, name: string, offset: n
   if (before.size !== after.size || before.ctimeNs !== after.ctimeNs) throw new ChatError(409, "File changed while reading: " + name);
   const next = Math.max(cursor, end);
   signal?.throwIfAborted();
-  return { path: name, text: displayText(text), nextOffset: next < size ? next : null };
+  return { path: name, text, nextOffset: next < size ? next : null };
 }

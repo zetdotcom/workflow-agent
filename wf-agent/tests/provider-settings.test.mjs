@@ -31,6 +31,7 @@ test("redacts complete credentials before paging, including requests that start 
     { source: 'secretoken = "' + assigned + '"', hidden: "synthetic quoted tail", at: 85_000 },
     { source: "-----BEGIN EC PRIVATE KEY-----\n" + pemBody + "-----END EC PRIVATE KEY-----", hidden: "syntheticBase64Line", at: 80_000 },
     { source: "Bearer\n " + "field".repeat(12), hidden: "field", at: 28 },
+    { source: "Authorization: Basic " + "field".repeat(12), hidden: "field", at: 28 },
     { source: "https://user:" + "sensitive".repeat(9) + "@example.test/", hidden: "sensitive", at: 40 }
   ];
   for (const { source, hidden, at } of samples) {
@@ -81,7 +82,7 @@ test("keeps safe large files byte-paged, preserves UTF-8 boundaries and rejects 
   assert.equal(first.nextOffset, page - 2);
   assert.equal((await files.read("unicode", first.nextOffset)).text, "🌏łąka");
   assert.equal((await files.read("unicode", page)).text, "łąka");
-  for (const data of [Buffer.from([0x41, 0x00, 0x42]), Buffer.from([0x41, 0xc0, 0xaf]), Buffer.from([0xe2, 0x82])]) {
+  for (const data of [Buffer.from([0x41, 0x00, 0x42]), Buffer.from([0x41, 0xc0, 0xaf]), Buffer.from([0xe2, 0x82]), Buffer.alloc(page + 1, 0x80)]) {
     await writeFile(join(root, "bad"), data);
     await assert.rejects(files.read("bad"), error => error.status === 400 && /binary|UTF-8/i.test(error.message));
   }
