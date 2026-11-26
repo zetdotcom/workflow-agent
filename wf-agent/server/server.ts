@@ -5,7 +5,8 @@ import { once } from "node:events";
 import { watch as watchPaths } from "chokidar";
 import { checkWorkflow, readBoard } from "./repository.js";
 import { BoardChats } from "./chat.js";
-import { ChatError, displayText, message, object } from "./chat-model.js";
+import { chatProvider, ChatError, displayText, message, object } from "./chat-model.js";
+import { projectState } from "./project-state.js";
 
 const web = new URL("../web/", import.meta.url);
 const types: Record<string, string> = { html: "text/html; charset=utf-8", css: "text/css", js: "text/javascript" };
@@ -49,7 +50,8 @@ export async function startServer(repository: string) {
   const root = await checkWorkflow(repository);
   const clients = new Set<ServerResponse>();
   let chatTimer: ReturnType<typeof setTimeout> | undefined;
-  const chats = new BoardChats(repository, () => {
+  const storage = await projectState(repository);
+  const chats = new BoardChats(repository, storage, () => {
     if (chatTimer) return;
     chatTimer = setTimeout(() => {
       chatTimer = undefined;
@@ -77,7 +79,7 @@ export async function startServer(repository: string) {
     if (url.origin !== origin) { response.writeHead(403).end(); return; }
     const path = url.pathname;
     const chatRoute = /^\/api\/chats\/([a-f0-9-]{36})(?:\/(messages|decision|permission|stop))?$/.exec(path);
-    const writable = path === "/api/chats" || Boolean(chatRoute?.[2]);
+    const writable = path === "/api/chats" || path === "/api/settings" || Boolean(chatRoute?.[2]);
     const write = request.method === "POST" && writable;
     if (request.method !== "GET" && !write) {
       response.writeHead(405, { Allow: "GET" }).end();
@@ -94,8 +96,17 @@ export async function startServer(repository: string) {
       const json = (value: unknown, code = 200) => response.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify(value));
       if (write) {
         const body = await readJson(request);
-        if (path === "/api/chats") json({ id: chats.store.create() }, 201);
-        else if (chatRoute) {
+        if (path === "/api/settings") {
+          const provider = chatProvider(body.provider);
+          const expected = body.expectedProvider === null ? null : chatProvider(body.expectedProvider);
+          chats.store.setProvider(provider, expected);
+          for (const client of clients) client.write("event: settings\ndata: changed\n\n");
+          json({ provider });
+        } else if (path === "/api/chats") {
+          if (Object.hasOwn(body, "provider")) throw new ChatError(400, "Choose the project provider in Settings.");
+          const expected = body.expectedProvider === undefined ? undefined : chatProvider(body.expectedProvider);
+          json({ id: chats.store.create(expected) }, 201);
+        } else if (chatRoute) {
           const [, id, operation] = chatRoute;
           if (operation === "messages") await chats.send(id, body);
           if (operation === "decision") await chats.decide(id, body);
@@ -103,6 +114,8 @@ export async function startServer(repository: string) {
           if (operation === "stop") chats.stop(id);
           json({ id }, 202);
         }
+      } else if (path === "/api/settings") {
+        json({ provider: chats.store.provider() });
       } else if (path === "/api/chats") {
         json(chats.store.list());
       } else if (chatRoute && !chatRoute[2]) {

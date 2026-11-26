@@ -21,8 +21,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .mark { display: grid; place-items: center; background: #dbe8cb; color: #284536; border-radius: 7px; width: 30px; height: 30px; font: italic bold 24px var(--serif); }
 .repo { font: 12px var(--mono); border-left: 1px solid #688073; padding-left: 22px; overflow-wrap: anywhere; color: #dee7da; }
 .topbar nav { display: flex; gap: 4px; margin-left: auto; }
-.topbar nav a { font-weight: 550; font-size: 14px; padding: 8px 15px; border-radius: 6px; }
-.topbar nav a:hover, .topbar nav a[aria-current] { background: #3a594a; }
+.topbar nav a, .topbar nav button { font-family: inherit; font-weight: 550; font-size: 14px; padding: 8px 15px; border-radius: 6px; }
+.topbar nav button { border: 0; color: inherit; background: transparent; cursor: pointer; }
+.topbar nav a:hover, .topbar nav button:hover, .topbar nav a[aria-current] { background: #3a594a; }
 main { max-width: 1800px; margin: 0 auto; padding: clamp(30px, 5vw, 72px) clamp(18px, 4vw, 70px) 125px; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
 .page-heading h1 { overflow-wrap: anywhere; }
@@ -80,6 +81,23 @@ progress::-moz-progress-bar { background: #5c825d; }
 .outcome { background: #edf2e9; border-radius: 5px; padding: 4px 8px; }
 dialog { position: fixed; inset: 0 0 0 auto; padding: 0; margin: 0; width: min(640px,100%); height: 100%; max-width: 100%; max-height: none; border: none; color: inherit; background: #fdfdf9; box-shadow: -12px 0 45px #1d32251a; }
 dialog::backdrop { background: #19261e55; }
+.settings-dialog { inset: 0; margin: auto; padding: 22px; width: min(460px, calc(100% - 28px)); height: fit-content; max-height: 90dvh;
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 64px #1d32252b; }
+.settings-dialog header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.settings-dialog h2 { margin: 0; font: 500 28px var(--serif); }
+.provider-form { font-size: 14px; }
+.provider-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.provider-form legend { padding: 0; font-size: 17px; font-weight: 650; }
+.provider-form p { margin: 7px 0 12px; color: var(--muted); line-height: 1.45; }
+.provider-form p[role="alert"] { color: #843f30; }
+.provider-choices, .provider-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.provider-choices label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; background: #fff; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.provider-choices label:has(input:checked) { background: #eaf1e9; border-color: var(--forest); }
+.provider-choices input { margin: 0; accent-color: var(--forest); }
+.provider-actions { justify-content: flex-end; margin-top: 12px; }
+.provider-actions button { font: inherit; color: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; background: white; cursor: pointer; }
+.provider-actions .primary { background: var(--forest); color: white; border-color: var(--forest); }
+.provider-actions button:disabled { cursor: default; opacity: .55; }
 .sheet { height: 100%; display: flex; flex-direction: column; }
 .sheet-bar { padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .close { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; font: inherit; font-size: 24px; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
@@ -109,6 +127,7 @@ details .markdown { padding-bottom: 18px; }
 @media(max-width: 580px) {
   .lanes { grid-template-columns: 1fr; } .lane { min-height: auto; }
   .topbar { padding-top: 10px; padding-bottom: 10px; gap: 8px; }
+  .topbar nav a, .topbar nav button { padding: 7px 8px; }
   .repo { order: 3; width: 100%; border: 0; padding: 0; }
   .archive-list a { flex-wrap: wrap; gap: 8px 14px; } .archive-list a div { flex-basis: 100%; }
 }

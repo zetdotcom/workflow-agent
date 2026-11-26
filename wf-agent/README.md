@@ -1,6 +1,6 @@
 # wf-agent
 
-`wf-agent` opens a local Kanban board for the current repository. It reads `.workflow/`, including uncommitted changes, and updates the board as tickets move. The chat at the bottom connects to the developer’s local Codex CLI.
+`wf-agent` opens a local Kanban board for the current repository. It reads `.workflow/`, including uncommitted changes, and updates the board as tickets move. Its chat uses the provider you choose for the project.
 
 ## Build and launch
 
@@ -22,7 +22,15 @@ The CLI prints a local URL and opens your default browser. Pass `--no-open` to p
 
 ## Chat and workflow actions
 
-Install Codex CLI on your path and sign in using `codex login`. The board starts the local app-server when you send a message. Its project tools use the app-server dynamic tools protocol, tested with Codex CLI 0.171.0. Install and enable the `wf` skill in Codex to run workflow commands. [Skill installation](../README.md#install-the-wf-skill) · [Codex app-server](https://developers.openai.com/codex/app-server)
+On first open, select a provider and click **Save provider**, or choose **Set up later** to browse the board. The project remembers your choice across browser visits and server restarts. To switch, open **Settings**, choose another provider, and save. **New chat** starts a conversation with the configured provider. Older transcripts show their provider. Switch back in Settings to continue one of those conversations.
+
+| Provider | Local setup | Board capabilities |
+| --- | --- | --- |
+| Codex | Install the Codex CLI on your path and run `codex login`. Enable the `wf` skill for workflow actions. | Discussion, repository search and file reads, and approved `wf` actions. [Skill installation](../README.md#install-the-wf-skill) · [Codex app-server](https://developers.openai.com/codex/app-server) |
+| Claude Code | Install the Claude Code CLI on your path and run `claude auth login`. The board uses safe and restricted modes, verified with CLI 2.1.332. | Discussion of the open board document and attached files. [Claude Code CLI](https://code.claude.com/docs/en/cli-reference) |
+| GitHub Copilot | Sign in with `gh auth login` using a Copilot-enabled account. The board includes the Microsoft Copilot SDK and its platform runtime. | Discussion of the open board document and attached files. [Copilot SDK](https://github.com/microsoft/copilot-sdk) |
+
+For Copilot and Claude, the board sends the text of the open change, ticket or archive record and the files you attach. Their combined limit is 96 KiB of UTF-8 text per message. The board reports a file problem before sending, so you can adjust the selection and retry.
 
 - Ask about the open ticket or its plan. Type `@` to attach a repository file. The open ticket or change appears first, followed by matching paths across the repository, including hidden, ignored, and untracked files. Git internals and files outside the repository are excluded. Use the arrow keys and Tab to select a match. Shift+Enter inserts a newline.
 - Ask for the status of a change or ticket, or ask to take a ticket to PR. Codex chooses the project tool and supplies its arguments. Inspect the target and select **Authorize and run** or **Decline**. A status run can repair stale workflow metadata.
@@ -30,7 +38,7 @@ Install Codex CLI on your path and sign in using `codex login`. The board starts
 - Consecutive calls appear together in a collapsed container labeled with their count, such as **tool calls (3)**. Select **Expand** on its right to see the list, then open any call to inspect its arguments and results. **Collapse** closes just that group.
 - **Stop** interrupts an active run. **Chats** reopens the transcript. **New chat** starts an independent conversation, including while a workflow is running. Each checkout runs one authorized workflow at a time. Navigating between tickets keeps the current conversation open.
 
-The board stores transcripts and pending proposals per repository in a local SQLite database beneath `$XDG_STATE_HOME/wf-agent`. The default is `~/.local/state/wf-agent` on macOS and Linux and `%LOCALAPPDATA%\wf-agent` on Windows. Codex manages its own thread history. A board restart preserves the transcript and marks interrupted work so the developer can inspect it before resuming.
+The board saves the project preference under `$XDG_STATE_HOME/wf-agent/projects` and keeps transcripts, pending proposals and board-owned runtime state in a separate directory per checkout. The default state root is `~/.local/state/wf-agent` on macOS and Linux or `%LOCALAPPDATA%\wf-agent` on Windows. Use a state location outside the project and its worktrees. Linked Git worktrees share the provider choice. Independent clones and standalone workflow directories have their own settings. Each provider handles its own credentials. A board restart preserves the transcript and marks interrupted work for inspection.
 
 ## Verify
 

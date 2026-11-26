@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { contextPath, stages, type Board, type Change, type Document, type Stage, type Ticket } from "../server/model";
 import { ChatDock } from "./chat";
+import { ProviderForm, SettingsDialog, useProjectSettings } from "./provider-settings";
 import { RichText } from "./rich-text";
 import "./style.css";
 
@@ -28,6 +30,7 @@ function useBoard() {
   const [error, setError] = useState("");
   const [online, setOnline] = useState(false);
   const [chatRevision, setChatRevision] = useState(0);
+  const [settingsRevision, setSettingsRevision] = useState(0);
   useEffect(() => {
     const stream = new EventSource("/api/events");
     let active: AbortController | undefined;
@@ -45,11 +48,14 @@ function useBoard() {
       }
     });
     stream.addEventListener("chat", () => setChatRevision(value => value + 1));
-    stream.onopen = () => { setOnline(true); setChatRevision(value => value + 1); };
+    stream.addEventListener("settings", () => setSettingsRevision(value => value + 1));
+    stream.onopen = () => {
+      setOnline(true); setChatRevision(value => value + 1); setSettingsRevision(value => value + 1);
+    };
     stream.onerror = () => setOnline(false);
     return () => { stream.close(); active?.abort(); };
   }, []);
-  return { board, error, online, chatRevision };
+  return { board, error, online, chatRevision, settingsRevision };
 }
 
 function StageLabel({ stage }: { stage: Stage }) {
@@ -126,7 +132,10 @@ function Panel({ title, id, close, children, chatHost }: PanelProps) {
 }
 
 function App() {
-  const { board, error, online, chatRevision } = useBoard();
+  const { board, error, online, chatRevision, settingsRevision } = useBoard();
+  const settings = useProjectSettings(settingsRevision);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [setupDeferred, setSetupDeferred] = useState(false);
   const [chatHost, setChatHost] = useState<HTMLDivElement | null>(null);
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
@@ -165,7 +174,8 @@ function App() {
     <header className="topbar">
       <a className="brand" href={boardPath}><span className="mark" aria-hidden="true">w</span>workflow-agent</a>
       <span className="repo">{board?.repository}</span>
-      <nav aria-label="Workspace"><a href={boardPath} aria-current={!archive ? "page" : undefined}>Board</a><a href={archivePath} aria-current={archive ? "page" : undefined}>Archive</a></nav>
+      <nav aria-label="Workspace"><a href={boardPath} aria-current={!archive ? "page" : undefined}>Board</a><a href={archivePath} aria-current={archive ? "page" : undefined}>Archive</a>
+        <button type="button" onClick={() => setSettingsOpen(true)}>Settings</button></nav>
     </header>
     <main>
       {scoped && <a className="board-back" href={boardPath}>← Back to changes</a>}
@@ -183,6 +193,7 @@ function App() {
         </div>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
+      {settings.error && !settingsOpen && <div className="error" role="alert">{settings.error} <button type="button" onClick={settings.refresh}>Retry settings</button></div>}
       {!board && !error && <p>Reading workflow…</p>}
       {board && !archive && !showTickets && <Lanes items={board.changes} emptyLabel="No changes"
         renderCard={item => <ChangeCard key={item.id} change={item} />} />}
@@ -218,9 +229,19 @@ function App() {
       <p className="archive-meta">{record.date} · {record.outcome}</p>
       <RichText text={record.summary.replace(/^# [^\n]+\n?/, "")} />
     </Panel>}
-    {board && <ChatDock host={chatHost} revision={chatRevision}
+    {board && settings.provider === null && !setupDeferred && !settingsOpen
+      ? createPortal(<section aria-label="Project chat setup" className="chat-dock setup-dock">
+        <ProviderForm provider={null} setup save={settings.save} close={() => setSetupDeferred(true)} />
+      </section>, chatHost ?? document.body)
+      : board && settings.provider !== undefined && <ChatDock host={chatHost} revision={chatRevision} projectProvider={settings.provider}
+      openSettings={() => setSettingsOpen(true)} refreshSettings={settings.refresh}
       selectedPath={change ? contextPath(change, ticket || undefined) : record ? ".workflow/archive/" + record.folder + "/SUMMARY.md" : ""}
       selection={change ? { change: change.id, ticket: ticket ? ticket.id : undefined } : record ? { change: "archived " + record.folder } : undefined} />}
+    {settingsOpen && <SettingsDialog close={() => setSettingsOpen(false)}>
+      {settings.error && <p role="alert">{settings.error} <button type="button" onClick={settings.refresh}>Retry settings</button></p>}
+      {settings.provider === undefined ? !settings.error && <p>Loading settings…</p> :
+        <ProviderForm provider={settings.provider} save={settings.save} close={() => setSettingsOpen(false)} />}
+    </SettingsDialog>}
   </>;
 }
 

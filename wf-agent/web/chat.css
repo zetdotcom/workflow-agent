@@ -6,6 +6,7 @@
 }
 .sheet-chat { flex: none; padding: 8px 12px max(12px, env(safe-area-inset-bottom)); }
 .sheet-chat .chat-dock { position: relative; left: auto; bottom: auto; transform: none; width: 100%; }
+.setup-dock { padding: 14px 16px; max-height: 45dvh; overflow-y: auto; }
 .chat-dock button, .chat-dock select, .chat-dock input, .chat-dock textarea { font: inherit; color: inherit; }
 .chat-dock button, .chat-dock select { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 6px 10px; }
 .chat-dock button { cursor: pointer; }
@@ -48,6 +49,9 @@
 .chat-approval label, .chat-approval input { display: block; width: 100%; margin-bottom: 8px; }
 .chat-actions { justify-content: flex-end; }
 .chat-form { position: relative; padding: 10px; }
+.composer-provider { color: var(--forest); font-size: 12px; }
+.chat-provider-note { margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.chat-provider-note button { padding: 0; background: transparent; border: 0; color: var(--forest); text-decoration: underline; }
 .is-open .chat-form { border-top: 1px solid var(--line); }
 .chat-input-row textarea { flex: 1; min-width: 0; resize: vertical; min-height: 38px; max-height: 120px; padding: 9px 6px; border: 0; border-radius: 4px; }
 .chat-input-row textarea:focus-visible { outline: 2px solid #9eb599; }

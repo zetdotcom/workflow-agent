@@ -1,16 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { BoardSelection, ChatEntry, ChatSummary, ChatView, HostPrompt } from "../server/chat-model";
+import { chatProviders, type BoardSelection, type ChatEntry, type ChatProvider, type ChatSummary, type ChatView, type HostPrompt } from "../server/chat-model";
+import { api, RequestError } from "./api";
 import { RichText } from "./rich-text";
 import "./chat.css";
-
-async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
-  const response = await fetch("/api/" + path, body === undefined ? { signal } : {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal
-  });
-  if (!response.ok) throw new Error(await response.text() || "The board request failed.");
-  return response.json();
-}
 
 function Entry({ entry }: { entry: ChatEntry }) {
   const [open, setOpen] = useState(false);
@@ -73,15 +66,18 @@ function Permission({ prompt, disabled, respond }: { prompt: HostPrompt; disable
   </div>;
 }
 
-type Props = { host: HTMLElement | null; revision: number; selectedPath: string; selection?: BoardSelection };
-export function ChatDock({ host, revision, selectedPath, selection }: Props) {
-  const [active, setActive] = useState(false);
+type Props = {
+  host: HTMLElement | null; revision: number; selectedPath: string; selection?: BoardSelection;
+  projectProvider: ChatProvider | null; openSettings: () => void; refreshSettings: () => Promise<void>;
+};
+export function ChatDock({ host, revision, selectedPath, selection, projectProvider, openSettings, refreshSettings }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [chats, setChats] = useState<ChatSummary[]>();
-  const [id, setId] = useState("");
+  const [id, setId] = useState<string>();
   const [view, setView] = useState<ChatView>();
   const [refresh, setRefresh] = useState(0);
   const [text, setText] = useState("");
+  const [draftProvider, setDraftProvider] = useState<ChatProvider | null>(null);
   const [files, setFiles] = useState<string[]>([]);
   const [mention, setMention] = useState<{ start: number; end: number; query: string }>();
   const [matches, setMatches] = useState<string[]>([]);
@@ -94,19 +90,26 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
   const follow = useRef(true);
   const current = view?.id === id ? view : undefined;
   const proposal = current?.proposal;
+  const savedProvider = current?.provider ?? chats?.find(chat => chat.id === id)?.provider;
+  const hasDraft = Boolean(text || files.length);
+  const provider = id ? savedProvider : (hasDraft && draftProvider ? draftProvider : projectProvider);
+  const providerName = provider ? chatProviders[provider] : "";
+  const canCompose = Boolean(projectProvider && provider === projectProvider && id !== undefined && (!id || current));
 
   useEffect(() => {
-    if (!active) return;
     const abort = new AbortController();
     void (async () => {
       const list = await api<ChatSummary[]>("chats", undefined, abort.signal);
+      if (abort.signal.aborted) return;
       setChats(list);
-      const selected = id || list[0]?.id;
-      if (selected && selected !== id) { setId(selected); return; }
-      if (selected) setView(await api<ChatView>("chats/" + selected, undefined, abort.signal));
+      if (id === undefined) { setId(list.find(chat => chat.provider === projectProvider)?.id ?? ""); return; }
+      if (id) {
+        const chat = await api<ChatView>("chats/" + id, undefined, abort.signal);
+        if (!abort.signal.aborted) setView(chat);
+      }
     })().catch(cause => { if (!abort.signal.aborted) setError(cause.message); });
     return () => abort.abort();
-  }, [id, active, revision, refresh]);
+  }, [id, projectProvider, revision, refresh]);
 
   useEffect(() => {
     if (follow.current && history.current) history.current.scrollTop = history.current.scrollHeight;
@@ -151,43 +154,58 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
   async function perform(operation: () => Promise<void>) {
     setError(""); setBusy(true);
     try { await operation(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not complete this request."); }
+    catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not complete this request.");
+      if (cause instanceof RequestError && cause.status === 409) await refreshSettings();
+    }
     finally { setBusy(false); setRefresh(value => value + 1); }
   }
-  async function createChat() {
-    const created = await api<{ id: string }>("chats", {});
+  async function createChat(expectedProvider: ChatProvider) {
+    const created = await api<{ id: string }>("chats", { expectedProvider });
     setId(created.id); setView(undefined); follow.current = true;
     return created.id;
   }
-  const canSend = Boolean(text.trim() && chats && !busy && (!id || current) && !current?.running);
+  function clearDraft() {
+    setText(""); setFiles([]); setMention(undefined); setDraftProvider(null);
+  }
+  function startChat() {
+    if (!projectProvider || busy) return;
+    setExpanded(true);
+    void perform(async () => {
+      await createChat(projectProvider); clearDraft(); input.current?.focus();
+    });
+  }
+  function changeDraft(value: string) {
+    if (!id && !hasDraft) setDraftProvider(projectProvider);
+    setText(value);
+  }
+  const canSend = Boolean(canCompose && text.trim() && !busy && !current?.running);
   function send() {
-    if (!canSend) return;
+    if (!canSend || !projectProvider) return;
     setExpanded(true); setMention(undefined); follow.current = true;
     void perform(async () => {
-      const chatId = id || await createChat();
-      await api("chats/" + chatId + "/messages", { text, files, selection });
-      setText(""); setFiles([]);
+      const chatId = id || await createChat(projectProvider);
+      await api("chats/" + chatId + "/messages", { text, files, selection, expectedProvider: projectProvider });
+      clearDraft();
     });
   }
   function command(operation: string, params: unknown) {
     void perform(async () => { await api("chats/" + id + "/" + operation, params); });
   }
   function toggle() {
-    setActive(true); setExpanded(!expanded); setMention(undefined);
+    setExpanded(!expanded); setMention(undefined);
   }
 
-  return createPortal(<section className={"chat-dock" + (expanded ? " is-open" : "")} aria-label="Codex chat">
+  return createPortal(<section className={"chat-dock" + (expanded ? " is-open" : "")} aria-label={(providerName || "Board") + " chat"}>
     {expanded && <div className="chat-panel">
-      <header className="chat-head"><strong>Codex</strong>
-        <select aria-label="Saved chats" value={id} disabled={busy || !chats?.length} onChange={event => {
-          setId(event.target.value); setText(""); setFiles([]); setMention(undefined); setError(""); follow.current = true;
+      <header className="chat-head"><strong>{providerName || "Chats"}</strong>
+        <select aria-label="Saved chats" value={id ?? ""} disabled={busy || !chats?.length} onChange={event => {
+          setId(event.target.value); clearDraft(); setError(""); follow.current = true;
         }}>
-          {!chats?.length && <option value="">New chat</option>}
-          {chats?.map(chat => <option key={chat.id} value={chat.id}>{chat.title}</option>)}
+          {!id && <option value="">New chat</option>}
+          {chats?.map(chat => <option key={chat.id} value={chat.id}>{chat.title} · {chatProviders[chat.provider]}</option>)}
         </select>
-        <button type="button" disabled={busy} onClick={() => void perform(async () => {
-          await createChat(); setText(""); setFiles([]); setMention(undefined); input.current?.focus();
-        })}>New chat</button>
+        <button type="button" disabled={busy || !projectProvider} onClick={startChat}>New chat</button>
         <button type="button" aria-label="Collapse chat" onClick={toggle}>−</button>
       </header>
       <div className="chat-history" ref={history} onScroll={event => {
@@ -195,7 +213,7 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
         follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
       }}>
         {current && <Transcript key={current.id} entries={current.entries} />}
-        {current?.running && <p className="chat-working">Codex is working…</p>}
+        {current?.running && <p className="chat-working">{providerName} is working…</p>}
         {proposal && <div className="chat-approval"><strong>Authorize workflow</strong>
           <code>{["wf", proposal.command, proposal.change, proposal.ticket].filter(Boolean).join(" ")}</code>
           <p>{proposal.reason}</p><small>{proposal.stage} · {proposal.directory}</small>
@@ -205,7 +223,8 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
           {proposal.plan && <details><summary>Implementation plan</summary><RichText text={proposal.plan} /></details>}
           <p>{proposal.command === "to-pr" ? "Includes implementation, verification, review, and PR publication when checks pass." : "Includes repairing the change’s status file if it is out of date."}</p>
           <div className="chat-actions"><button type="button" disabled={busy || current?.running} onClick={() => command("decision", { id: proposal.id, approve: false })}>Decline</button>
-            <button type="button" className="primary" disabled={busy || current?.running} onClick={() => command("decision", { id: proposal.id, approve: true })}>Authorize and run</button></div>
+            <button type="button" className="primary" disabled={busy || current?.running || !canCompose}
+              onClick={() => command("decision", { id: proposal.id, approve: true, expectedProvider: projectProvider })}>Authorize and run</button></div>
         </div>}
         {current?.prompt && <Permission key={current.prompt.id} prompt={current.prompt} disabled={busy}
           respond={(approve, answers) => command("permission", { id: current.prompt!.id, approve, answers })} />}
@@ -213,7 +232,13 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
     </div>}
     {error && <p className="chat-error" role="alert">{error}</p>}
     <form className="chat-form" onSubmit={event => { event.preventDefault(); send(); }}>
-      {mention && <div className="mention-list" role="listbox" id="file-suggestions" aria-label="Repository files">
+      {!projectProvider && <p className="chat-provider-note">Choose a provider to send messages. <button type="button" onClick={openSettings}>Open Settings</button></p>}
+      {provider && projectProvider && provider !== projectProvider && <p className="chat-provider-note">
+        {id ? "This chat" : "This draft"} uses {providerName}. The project now uses {chatProviders[projectProvider]}.{" "}
+        <button type="button" disabled={busy} onClick={startChat}>Start a {chatProviders[projectProvider]} chat</button>{" · "}
+        <button type="button" onClick={openSettings}>Open Settings</button>
+      </p>}
+      {mention && canCompose && <div className="mention-list" role="listbox" id="file-suggestions" aria-label="Repository files">
         {matches.map((path, index) => <button key={path} id={"file-option-" + index} type="button" role="option"
           aria-selected={index === choice} onMouseDown={event => event.preventDefault()} onClick={() => attach(path)}>
           <span>{path.slice(path.lastIndexOf("/") + 1)} {path === selectedPath && <small>Current selection</small>}</span><code>{path}</code>
@@ -222,20 +247,22 @@ export function ChatDock({ host, revision, selectedPath, selection }: Props) {
       </div>}
       {files.length > 0 && <div className="chat-files">{files.map(path => <button key={path} type="button" title={path} aria-label={"Remove " + path}
         onClick={() => setFiles(files.filter(value => value !== path))}>@{path} ×</button>)}</div>}
-      <div className="chat-input-row">{expanded ? <button type="button" aria-label="Mention a repository file" onClick={() => {
+      <div className="chat-input-row">{expanded ? <button type="button" disabled={!canCompose || busy} aria-label="Mention a repository file" onClick={() => {
         const start = input.current?.selectionStart ?? text.length;
         const end = input.current?.selectionEnd ?? start;
         const prefix = start && !/\s/.test(text[start - 1]) ? " @" : "@";
         const value = text.slice(0, start) + prefix + text.slice(end);
-        setText(value); findMention(value, start + prefix.length);
+        changeDraft(value); findMention(value, start + prefix.length);
         requestAnimationFrame(() => { input.current?.focus(); input.current?.setSelectionRange(start + prefix.length, start + prefix.length); });
       }}>@</button> : <button className="chat-toggle" type="button" aria-label="Show or hide saved chats" aria-expanded={expanded} onClick={toggle}>Chats</button>}
-        <textarea ref={input} rows={1} aria-label="Message Codex" placeholder="Ask Codex…   @ to add a file" value={text}
+        {!expanded && providerName && <strong className="composer-provider">{providerName}</strong>}
+        <textarea ref={input} rows={1} readOnly={!canCompose || busy} aria-label={providerName ? "Message " + providerName : "Chat message"}
+          placeholder={providerName ? "Ask " + providerName + "…   @ to add a file" : ""} value={text}
           aria-controls={mention ? "file-suggestions" : undefined} aria-activedescendant={mention && matches[choice] ? "file-option-" + choice : undefined}
-          onFocus={() => setActive(true)} onChange={event => { setText(event.target.value); findMention(event.target.value, event.target.selectionStart); }}
-          onClick={event => findMention(text, event.currentTarget.selectionStart)}
+          onChange={event => { changeDraft(event.target.value); findMention(event.target.value, event.target.selectionStart); }}
+          onClick={event => { if (canCompose) findMention(text, event.currentTarget.selectionStart); }}
           onKeyDown={event => {
-            if (event.nativeEvent.isComposing) return;
+            if (event.nativeEvent.isComposing || !canCompose || busy) return;
             if (mention && ["ArrowDown", "ArrowUp"].includes(event.key) && matches.length) {
               event.preventDefault(); const next = (choice + (event.key === "ArrowDown" ? 1 : -1) + matches.length) % matches.length;
               setChoice(next); document.getElementById("file-option-" + next)?.scrollIntoView({ block: "nearest" });
